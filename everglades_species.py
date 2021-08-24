@@ -77,8 +77,7 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
 def train_model(train_path, test_path, empty_images_path=None, save_dir=".", debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(api_key="ypQZhYfs3nSyKzOfz13iuJpj2",
-                                  project_name="everglades-species", workspace="bw4sz")
+    comet_logger = CometLogger(project_name="everglades-species", workspace="bw4sz")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
@@ -203,4 +202,4 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
     return model
 
 if __name__ == "__main__":
-    train_model(train_path="/orange/ewhite/everglades/Zooniverse/parsed_images/train.csv", test_path="/orange/ewhite/everglades/Zooniverse/parsed_images/test.csv", save_dir="/orange/ewhite/everglades/Zooniverse/")
+    train_model(train_path="/orange/ewhite/everglades/Zooniverse/parsed_images/species_train.csv", test_path="/orange/ewhite/everglades/Zooniverse/parsed_images/species_test.csv", save_dir="/orange/ewhite/everglades/Zooniverse/")
