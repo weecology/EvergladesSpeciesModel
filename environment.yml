@@ -1,0 +1,13 @@
+name: EvergladesSpeciesModel
+channels: 
+  - conda-forge
+dependencies:
+  - pytest
+  - pip
+  - dask
+  - distributed
+  - pip:
+    - DeepForest
+
+
+
