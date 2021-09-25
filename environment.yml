@@ -1,13 +1,14 @@
 name: EvergladesSpeciesModel
 channels: 
-  - conda-forge
+  - defaults
 dependencies:
-  - pytest
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - nvidia::cudatoolkit=11.1
   - pip
   - dask
   - distributed
   - pip:
     - DeepForest
-
-
-
+    - pytest
+    - comet_ml
