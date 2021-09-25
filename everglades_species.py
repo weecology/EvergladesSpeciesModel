@@ -29,6 +29,16 @@ def empty_image(precision_curve, threshold):
     
     return empty_recall
 
+def get_species_abbrev_lookup(species_lookup):
+    species_abbrev_lookup = {}
+    for number, species in species_lookup.items():
+        split_name = species.split()
+        abbrev = ''
+        for sub_name in split_name:
+            abbrev += sub_name[0]
+        species_abbrev_lookup[number] = abbrev
+    return species_abbrev_lookup
+
 def plot_recall_curve(precision_curve, invert=False):
     """Plot recall at fixed interval 0:1"""
     recalls = {}
@@ -96,6 +106,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
 
     #Set config and train'    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
+    species_lookup = {value:key for key, value in label_dict.items()}
+    species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)
     model = main.deepforest(num_classes=len(train.label.unique()),label_dict=label_dict)
     
     model.config["train"]["csv_file"] = train_path
@@ -163,8 +175,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             comet_logger.experiment.log_asset("{}/class_recall.csv".format(model_savedir))
             
             for index, row in results["class_recall"].iterrows():
-                comet_logger.experiment.log_metric("{}_Recall".format(row["label"]),row["recall"])
-                comet_logger.experiment.log_metric("{}_Precision".format(row["label"]),row["precision"])
+                comet_logger.experiment.log_metric("{}_Recall".format(species_abbrev_lookup[row["label"]]),row["recall"])
+                comet_logger.experiment.log_metric("{}_Precision".format(species_abbrev_lookup[row["label"]]),row["precision"])
             
             comet_logger.experiment.log_metric("Average Class Recall",results["class_recall"].recall.mean())
             comet_logger.experiment.log_metric("Box Recall",results["box_recall"])
@@ -173,12 +185,24 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
             
             ypred = results["results"].predicted_label.astype('category').cat.codes.to_numpy()            
-            ypred = torch.from_numpy(ypred)
-            ypred = torch.nn.functional.one_hot(ypred, num_classes = model.num_classes).numpy()
             
-            ytrue = results["results"].true_label.astype('category').cat.codes.to_numpy()
+            # Test data that does not get a bounding box is indicated by ypred == -1
+            # Convert this to one more than the available class indexes to allow contruction of a confusion matrix
+            ypred.setflags(write = 1)
+            ypred[ypred == -1] = model.num_classes
+            ypred = torch.from_numpy(ypred)
+            ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes + 1).numpy()
+            
+            # Code true labels to match indexes from model training
+            ytrue = results["results"].true_label
+            ytrue = np.asarray([model.label_dict[y] for y in ytrue])
             ytrue = torch.from_numpy(ytrue)
-            ytrue = torch.nn.functional.one_hot(ytrue, num_classes = model.num_classes).numpy()
+
+            # Create one hot representation with extra class for test data with no bounding box
+            ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes + 1).numpy()
+
+            # Add a label for undetected birds and create confusion matrix
+            model.label_dict.update({'Bird Not Detected': 6})
             comet_logger.experiment.log_confusion_matrix(y_true=ytrue, y_predicted=ypred, labels = list(model.label_dict.keys()))
         except Exception as e:
             print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
