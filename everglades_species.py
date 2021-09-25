@@ -173,14 +173,24 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
             
             ypred = results["results"].predicted_label.astype('category').cat.codes.to_numpy()            
+            
+            # Test data that does not get a bounding box is indicated by ypred == -1
+            # Convert this to one more than the available class indexes to allow contruction of a confusion matrix
+            ypred.setflags(write = 1)
+            ypred[ypred == -1] = model.num_classes
             ypred = torch.from_numpy(ypred)
-            ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes).numpy()
+            ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes + 1).numpy()
             
             # Code true labels to match indexes from model training
             ytrue = results["results"].true_label
             ytrue = np.asarray([model.label_dict[y] for y in ytrue])
             ytrue = torch.from_numpy(ytrue)
-            ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes).numpy()
+
+            # Create one hot representation with extra class for test data with no bounding box
+            ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes + 1).numpy()
+
+            # Add a label for undetected birds and create confusion matrix
+            model.label_dict.update({'Bird Not Detected': 6})
             comet_logger.experiment.log_confusion_matrix(y_true=ytrue, y_predicted=ypred, labels = list(model.label_dict.keys()))
         except Exception as e:
             print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
