@@ -174,11 +174,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             
             ypred = results["results"].predicted_label.astype('category').cat.codes.to_numpy()            
             ypred = torch.from_numpy(ypred)
-            ypred = torch.nn.functional.one_hot(ypred, num_classes = model.num_classes).numpy()
+            ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes).numpy()
             
             ytrue = results["results"].true_label.astype('category').cat.codes.to_numpy()
             ytrue = torch.from_numpy(ytrue)
-            ytrue = torch.nn.functional.one_hot(ytrue, num_classes = model.num_classes).numpy()
+            ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes).numpy()
             comet_logger.experiment.log_confusion_matrix(y_true=ytrue, y_predicted=ypred, labels = list(model.label_dict.keys()))
         except Exception as e:
             print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
