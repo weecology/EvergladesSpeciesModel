@@ -176,7 +176,9 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             ypred = torch.from_numpy(ypred)
             ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes).numpy()
             
-            ytrue = results["results"].true_label.astype('category').cat.codes.to_numpy()
+            # Code true labels to match indexes from model training
+            ytrue = results["results"].true_label
+            ytrue = np.asarray([model.label_dict[y] for y in ytrue])
             ytrue = torch.from_numpy(ytrue)
             ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes).numpy()
             comet_logger.experiment.log_confusion_matrix(y_true=ytrue, y_predicted=ypred, labels = list(model.label_dict.keys()))
