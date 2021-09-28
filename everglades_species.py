@@ -184,12 +184,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             
             comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
             
+            # Make predicted labels while dealing with test data that does not get a bounding box.
+            # These predicted labels return as nan, so check for them using y == y (returns False for nan)
+            # and then replace them with one more than the available class indexes for confusion matrix
             ypred = results["results"].predicted_label       
-            
-            # Test data that does not get a bounding box is indicated by ypred == -1
-            # Convert this to one more than the available class indexes to allow contruction of a confusion matrix
-            ypred.setflags(write = 1)
-            ypred[ypred == -1] = model.num_classes
+            ypred = np.asarray([model.label_dict[y] if y == y else model.num_classes for y in ypred])  
             ypred = torch.from_numpy(ypred)
             ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes + 1).numpy()
             
