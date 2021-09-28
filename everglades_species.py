@@ -184,7 +184,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
             
             comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
             
-            ypred = results["results"].predicted_label.astype('category').cat.codes.to_numpy()            
+            ypred = results["results"].predicted_label       
             
             # Test data that does not get a bounding box is indicated by ypred == -1
             # Convert this to one more than the available class indexes to allow contruction of a confusion matrix
