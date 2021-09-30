@@ -225,4 +225,6 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
     return model
 
 if __name__ == "__main__":
-    train_model(train_path="/orange/ewhite/everglades/Zooniverse/parsed_images/species_train.csv", test_path="/orange/ewhite/everglades/Zooniverse/parsed_images/species_test.csv", save_dir="/orange/ewhite/everglades/Zooniverse/")
+    train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
+                test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
+                save_dir="/blue/ewhite/everglades/Zooniverse/")
