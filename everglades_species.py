@@ -87,7 +87,7 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
 def train_model(train_path, test_path, empty_images_path=None, save_dir=".", debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="bw4sz")
+    comet_logger = CometLogger(project_name="everglades-species", workspace="ethanwhite")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
