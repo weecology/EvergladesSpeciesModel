@@ -188,15 +188,19 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
 
     #get class weights
     train_data = pd.read_csv(train_path)
-    species_counts = train_data.groupby('label')['label'].count()
-    class_weights = dict(species_counts / sum(species_counts))
-    
+    class_counts = train_data.groupby('label')['label'].count()
+    class_counts[class_counts < 1000] = 1000    #Provide a floor to class weights
+    class_counts[class_counts > 10000] = 10000    #Provide a ceiling to class weights
+    class_weights = dict(class_counts / sum(class_counts))
+    class_weights_numeric_label = {model.label_dict[key]: value for key, value in class_weights.items()}
+    class_weights_numeric_label = {key: class_weights_numeric_label[key] for key in sorted(class_weights_numeric_label)}
+
     data_weights = []
     #upsample rare classes more as a residual
     for idx, batch in enumerate(ds):
         path, image, targets = batch
         labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
-        image_weight = sum([class_weights[x] for x in labels])
+        image_weight = sum([np.log(class_weights[x]) for x in labels])
         data_weights.append(1 / image_weight)
         
     data_weights = data_weights / sum(data_weights)
