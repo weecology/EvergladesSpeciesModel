@@ -125,7 +125,7 @@ def index_to_example(index, results, test_path, comet_experiment):
 def train_model(train_path, test_path, empty_images_path=None, save_dir=".", debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="ethanwhite")
+    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
