@@ -11,8 +11,8 @@ sbatch <<EOT
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50GB
 #SBATCH --time=48:00:00       #Time limit hrs:min:sec
-#SBATCH --output=/orange/ewhite/everglades/EvergladesSpeciesModel/EvergladesSpeciesModel_%j.out   # Standard output and error log
-#SBATCH --error=/orange/ewhite/everglades/EvergladesSpeciesModel/EvergladesSpeciesModel_%j.err
+#SBATCH --output=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
+#SBATCH --error=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.err
 #SBATCH --partition=gpu
 #SBATCH --gpus=1
 ulimit -c 0
