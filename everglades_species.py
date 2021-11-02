@@ -4,12 +4,18 @@ from pytorch_lightning.loggers import CometLogger
 from deepforest.callbacks import images_callback
 from deepforest import main
 from deepforest import visualize
+from deepforest import dataset
+from deepforest import utilities
 import pandas as pd
 import os
 import numpy as np
 from datetime import datetime
 import traceback
 import torch
+import tempfile
+from matplotlib import pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path, PurePath
 
 def is_empty(precision_curve, threshold):
     precision_curve.score = precision_curve.score.astype(float)
@@ -84,6 +90,38 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
     comet_logger.experiment.log_metric(metric_name,value)
     comet_logger.experiment.log_figure(recall_plot)   
     
+def index_to_example(index, results, test_path, comet_experiment):
+    """Make example images of for confusion matrix"""
+    tmpdir = tempfile.gettempdir()
+    results = results.iloc[index]
+
+    xmin = results['xmin']
+    xmax = results['xmax']
+    ymin = results['ymin']
+    ymax = results['ymax']
+
+    image_name = results['image_path']
+    test_image_path = Path(test_path).parent
+    image_path = PurePath(Path(test_image_path), Path(image_name))
+    print(image_path)
+    image = Image.open(str(image_path))
+
+    draw = ImageDraw.Draw(image, "RGB")
+    draw.rectangle((xmin, ymin, xmax, ymax), outline = (255, 255, 255), width=2)
+    font = ImageFont.truetype("Gidole-Regular.ttf", 20)
+    draw.text((xmin - 150, ymin - 150), f"image={image_name}\nxmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}", fill=(255, 255, 255), font=font)
+    image = image.crop((xmin - 200, ymin - 200, xmax + 200, ymax + 200))
+
+    tmp_image_name = f"{tmpdir}/confusion-matrix-{index}.png"
+    image.save(tmp_image_name)
+
+    results = comet_experiment.log_image(
+        tmp_image_name, name=image_name,
+    )
+    plt.close("all")
+    # Return sample, assetId (index is added automatically)
+    return {"sample": tmp_image_name, "assetId": results["imageId"]}
+
 def train_model(train_path, test_path, empty_images_path=None, save_dir=".", debug = False):
     """Train a DeepForest model"""
     
@@ -130,7 +168,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
         
     im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)    
     model.create_trainer(callbacks=[im_callback], logger=comet_logger)
-    
+
     ##Overwrite sampler to weight by class
     #ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
                              #root_dir=model.config["train"]["root_dir"],
@@ -202,7 +240,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
 
             # Add a label for undetected birds and create confusion matrix
             model.label_dict.update({'Bird Not Detected': 6})
-            comet_logger.experiment.log_confusion_matrix(y_true=ytrue, y_predicted=ypred, labels = list(model.label_dict.keys()))
+            comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
+                                                         y_predicted=ypred,
+                                                         labels = list(model.label_dict.keys()),
+                                                         index_to_example_function=index_to_example,
+                                                         results = results["results"],
+                                                         test_path=test_path,
+                                                         comet_experiment = comet_logger.experiment)
         except Exception as e:
             print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
     
@@ -221,7 +265,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
     
     #save model
     model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
-    
+
     return model
 
 if __name__ == "__main__":
