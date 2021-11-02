@@ -3,9 +3,6 @@ import comet_ml
 from pytorch_lightning.loggers import CometLogger
 from deepforest.callbacks import images_callback
 from deepforest import main
-from deepforest import visualize
-from deepforest import dataset
-from deepforest import utilities
 import pandas as pd
 import os
 import numpy as np
