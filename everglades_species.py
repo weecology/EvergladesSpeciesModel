@@ -13,6 +13,8 @@ import tempfile
 from matplotlib import pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path, PurePath
+import torch.nn as nn
+import math
 
 def is_empty(precision_curve, threshold):
     precision_curve.score = precision_curve.score.astype(float)
@@ -143,7 +145,22 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
     species_lookup = {value:key for key, value in label_dict.items()}
     species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)
-    model = main.deepforest(num_classes=len(train.label.unique()),label_dict=label_dict)
+    
+    # Start with general bird detection model and replace classifiation head
+    model = main.deepforest()
+    model.use_bird_release()
+
+    num_classes = len(train.label.unique())
+    #in_features = model.model.head.classification_head.conv[0].in_channels
+    num_anchors = model.model.head.classification_head.num_anchors
+    cls_logits = nn.Conv2d(256, num_anchors * num_classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    
+    nn.init.normal_(cls_logits.weight, std=0.01)
+    nn.init.constant(cls_logits.bias, -math.log((1 - 0.01) / 0.01))
+    model.model.head.classification_head.num_classes = num_classes
+    model.num_classes = num_classes
+    model.label_dict=label_dict
+    model.model.head.classification_head.cls_logits = cls_logits
     
     model.config["train"]["csv_file"] = train_path
     model.config["train"]["root_dir"] = os.path.dirname(train_path)
