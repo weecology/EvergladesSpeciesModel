@@ -13,6 +13,9 @@ import tempfile
 from matplotlib import pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path, PurePath
+import torch.nn as nn
+import math
+from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 
 def is_empty(precision_curve, threshold):
     precision_curve.score = precision_curve.score.astype(float)
@@ -143,7 +146,15 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
     species_lookup = {value:key for key, value in label_dict.items()}
     species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)
+    
     model = main.deepforest(num_classes=len(train.label.unique()),label_dict=label_dict)
+
+    # Use the backbone and regression head from the global bird detector to transfer
+    # learning about bird detection and bird related features 
+    global_bird_detector = main.deepforest()
+    global_bird_detector.use_bird_release()
+    model.model.backbone.load_state_dict(global_bird_detector.model.backbone.state_dict())
+    model.model.head.regression_head.load_state_dict(global_bird_detector.model.head.regression_head.state_dict())
     
     model.config["train"]["csv_file"] = train_path
     model.config["train"]["root_dir"] = os.path.dirname(train_path)
