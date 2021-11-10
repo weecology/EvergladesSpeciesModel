@@ -125,10 +125,10 @@ def index_to_example(index, results, test_path, comet_experiment):
     # Return sample, assetId (index is added automatically)
     return {"sample": tmp_image_name, "assetId": results["imageId"]}
 
-def train_model(train_path, test_path, empty_images_path=None, save_dir=".", debug = False):
+def train_model(train_path, test_path, empty_images_path=None, save_dir=".", balance_min = 0, balance_max = 100000, debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology")
+    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name="unbal-no-limits")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
@@ -189,8 +189,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
     #get class weights
     train_data = pd.read_csv(train_path)
     class_counts = train_data.groupby('label')['label'].count()
-    class_counts[class_counts < 1000] = 1000    #Provide a floor to class weights
-    class_counts[class_counts > 10000] = 10000    #Provide a ceiling to class weights
+    class_counts[class_counts < balance_min] = balance_min    #Provide a floor to class weights
+    class_counts[class_counts > balance_max] = balance_max    #Provide a ceiling to class weights
     class_weights = dict(class_counts / sum(class_counts))
     class_weights_numeric_label = {model.label_dict[key]: value for key, value in class_weights.items()}
     class_weights_numeric_label = {key: class_weights_numeric_label[key] for key in sorted(class_weights_numeric_label)}
