@@ -3,6 +3,9 @@ import comet_ml
 from pytorch_lightning.loggers import CometLogger
 from deepforest.callbacks import images_callback
 from deepforest import main
+from deepforest import visualize
+from deepforest import dataset
+from deepforest import utilities
 import pandas as pd
 import os
 import numpy as np
@@ -122,10 +125,10 @@ def index_to_example(index, results, test_path, comet_experiment):
     # Return sample, assetId (index is added automatically)
     return {"sample": tmp_image_name, "assetId": results["imageId"]}
 
-def train_model(train_path, test_path, empty_images_path=None, save_dir=".", debug = False):
+def train_model(train_path, test_path, empty_images_path=None, save_dir=".", balance_min = 0, balance_max = 100000, debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology")
+    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name="unbal-no-limits")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
@@ -176,38 +179,39 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
         
     im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)    
     model.create_trainer(callbacks=[im_callback], logger=comet_logger)
+    
+    #Overwrite sampler to weight by class
+    ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
+                             root_dir=model.config["train"]["root_dir"],
+                             transforms=dataset.get_transform(augment=True),
+                             label_dict=model.label_dict)
 
-    ##Overwrite sampler to weight by class
-    #ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
-                             #root_dir=model.config["train"]["root_dir"],
-                             #transforms=dataset.get_transform(augment=True),
-                             #label_dict=model.label_dict)
+    #get class weights
+    train_data = pd.read_csv(train_path)
+    class_counts = train_data.groupby('label')['label'].count()
+    class_counts[class_counts < balance_min] = balance_min    #Provide a floor to class weights
+    class_counts[class_counts > balance_max] = balance_max    #Provide a ceiling to class weights
+    class_weights = dict(class_counts / sum(class_counts))
+    class_weights_numeric_label = {model.label_dict[key]: value for key, value in class_weights.items()}
+    class_weights_numeric_label = {key: class_weights_numeric_label[key] for key in sorted(class_weights_numeric_label)}
 
-    ##get class weights
-    #class_weights = {}
-    #for x in list(model.label_dict.keys()):
-        #class_weights[x] = 0 
-    
-    #for batch in ds:
-        #path, image, targets = batch
-        #labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
-        #for x in labels:
-            #class_weights[x] = class_weights[x]+1
-    
-    #for x in class_weights:
-        #class_weights[x] = class_weights[x]/sum(class_weights.values())
-    
-    #data_weights = []
-    ##upsample rare classes more as a residual
-    #for idx, batch in enumerate(ds):
-        #path, image, targets = batch
-        #labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
-        #image_weight = sum([1-class_weights[x] for x in labels])/len(labels)
-        #data_weights.append(1/image_weight)
+    data_weights = []
+    #upsample rare classes more as a residual
+    for idx, batch in enumerate(ds):
+        path, image, targets = batch
+        labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
+        image_weight = sum([class_weights[x] for x in labels])
+        data_weights.append(1 / image_weight)
         
-    #sampler = torch.utils.data.sampler.WeightedRandomSampler(weights = data_weights, num_samples=len(ds))
-    #dataloader = torch.utils.data.DataLoader(ds, batch_size = model.config["batch_size"], sampler = sampler, collate_fn=utilities.collate_fn, num_workers=model.config["workers"])
-    model.trainer.fit(model)
+    data_weights = data_weights / sum(data_weights)
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights = torch.DoubleTensor(data_weights),
+                                                             num_samples=len(ds))
+    dataloader = torch.utils.data.DataLoader(ds,
+                                             batch_size = model.config["batch_size"],
+                                             sampler = sampler,
+                                             collate_fn=utilities.collate_fn,
+                                             num_workers=model.config["workers"])
+    model.trainer.fit(model, dataloader)
     
     #Manually convert model
     results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
@@ -279,4 +283,6 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", deb
 if __name__ == "__main__":
     train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
-                save_dir="/blue/ewhite/everglades/Zooniverse/")
+                save_dir="/blue/ewhite/everglades/Zooniverse/",
+                balance_min = 0,
+                balance_max = 100000)
