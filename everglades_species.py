@@ -283,4 +283,6 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
 if __name__ == "__main__":
     train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
-                save_dir="/blue/ewhite/everglades/Zooniverse/")
+                save_dir="/blue/ewhite/everglades/Zooniverse/",
+                balance_min = 0,
+                balance_max = 100000)
