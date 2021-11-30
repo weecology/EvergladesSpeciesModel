@@ -200,7 +200,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
     for idx, batch in enumerate(ds):
         path, image, targets = batch
         labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
-        image_weight = sum([np.log(class_weights[x]) for x in labels])
+        image_weight = sum([class_weights[x] for x in labels])
         data_weights.append(1 / image_weight)
         
     data_weights = data_weights / sum(data_weights)
