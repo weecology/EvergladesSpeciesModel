@@ -147,11 +147,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
 
     if one_vs_all_sp:
         train["label"] = np.where(train["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        train_path = PurePath(Path(train_path).parents[0], Path('species_train_tmp.csv'))
+        train_path = PurePath(Path(train_path).parents[0], Path(f'species_train_tmp_{timestamp}.csv'))
         train_path = str(train_path)
         train.to_csv(train_path)
         test["label"] = np.where(test["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        test_path = PurePath(Path(test_path).parents[0], Path('species_test_tmp.csv'))
+        test_path = PurePath(Path(test_path).parents[0], Path(f'species_test_tmp_{timestamp}.csv'))
         test_path = str(test_path)
         test.to_csv(test_path)
 
