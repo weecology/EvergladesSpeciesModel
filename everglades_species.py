@@ -125,10 +125,10 @@ def index_to_example(index, results, test_path, comet_experiment):
     # Return sample, assetId (index is added automatically)
     return {"sample": tmp_image_name, "assetId": results["imageId"]}
 
-def train_model(train_path, test_path, empty_images_path=None, save_dir=".", balance_min = 0, balance_max = 100000, debug = False):
+def train_model(train_path, test_path, empty_images_path=None, save_dir=".", balance_min = 0, balance_max = 100000, debug = False, one_vs_all_sp = None, experiment_name="ev-species"):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name="unbal-no-limits")
+    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name=experiment_name)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
@@ -144,6 +144,17 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
     #Log the number of training and test
     train = pd.read_csv(train_path)
     test = pd.read_csv(test_path)
+
+    if one_vs_all_sp:
+        train["label"] = np.where(train["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
+        train_path = PurePath(Path(train_path).parents[0], Path(f'species_train_tmp_{timestamp}.csv'))
+        train_path = str(train_path)
+        train.to_csv(train_path)
+        test["label"] = np.where(test["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
+        test_path = PurePath(Path(test_path).parents[0], Path(f'species_test_tmp_{timestamp}.csv'))
+        test_path = str(test_path)
+        test.to_csv(test_path)
+
 
     #Set config and train'    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
@@ -285,4 +296,6 @@ if __name__ == "__main__":
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 balance_min = 0,
-                balance_max = 100000)
+                balance_max = 100000,
+                one_vs_all_sp="Great Egret",
+                experiment_name="onevall-greg")
