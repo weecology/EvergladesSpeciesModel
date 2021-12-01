@@ -153,14 +153,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
 
     if one_vs_all_sp:
         train["label"] = np.where(train["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        train_path = PurePath(Path(train_path).parents[0], Path(f'species_train_tmp_{timestamp}.csv'))
-        train_path = str(train_path)
-        train.to_csv(train_path)
         test["label"] = np.where(test["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        test_path = PurePath(Path(test_path).parents[0], Path(f'species_test_tmp_{timestamp}.csv'))
-        test_path = str(test_path)
-        test.to_csv(test_path)
 
+    #Store test train split for run to allow multiple simultaneous run starts
+    train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
+    test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
+    train.to_csv(train_path)
+        test.to_csv(test_path)
 
     #Set config and train'    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
