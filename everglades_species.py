@@ -159,7 +159,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
     test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
     train.to_csv(train_path)
-        test.to_csv(test_path)
+    test.to_csv(test_path)
 
     #Set config and train'    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
@@ -306,13 +306,14 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     return model
 
 if __name__ == "__main__":
-    regenerate = False
+    regenerate = True
     empty_frames = 0
     if regenerate:
         create_species_model.generate(shp_dir="/blue/ewhite/everglades/Zooniverse/parsed_images/",
                                     empty_frames_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
                                     save_dir="/blue/ewhite/everglades/Zooniverse/predictions/",
-                                    empty_frames=empty_frames)
+                                    empty_frames=empty_frames,
+                                    buffer=25)
     train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
@@ -321,4 +322,4 @@ if __name__ == "__main__":
                 balance_min = 0,
                 balance_max = 100000,
                 one_vs_all_sp=None,
-                experiment_name="gbd-pretrain")
+                experiment_name="buffer-baseline")

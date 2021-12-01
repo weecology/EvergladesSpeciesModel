@@ -11,7 +11,7 @@ import warnings
 from pathlib import Path
 
 #Define shapefile utility
-def shapefile_to_annotations(shapefile, rgb_path, savedir="."):
+def shapefile_to_annotations(shapefile, rgb_path, buffer, savedir="."):
     """
     Convert a shapefile of annotations into annotations csv file for DeepForest training and evaluation
     Args:
@@ -29,7 +29,7 @@ def shapefile_to_annotations(shapefile, rgb_path, savedir="."):
     
     #define in image coordinates and buffer to create a box
     gdf["geometry"] =[Point(x,y) for x,y in zip(gdf.x.astype(float), gdf.y.astype(float))]
-    gdf["geometry"] = [box(int(left), int(bottom), int(right), int(top)) for left, bottom, right, top in gdf.geometry.buffer(25).bounds.values]
+    gdf["geometry"] = [box(int(left), int(bottom), int(right), int(top)) for left, bottom, right, top in gdf.geometry.buffer(buffer).bounds.values]
         
     #extent bounds
     df = gdf.bounds
@@ -95,7 +95,7 @@ def find_rgb_path(shp_path, image_dir):
     rgb_path = "{}/{}.png".format(image_dir,basename)
     return rgb_path
     
-def format_shapefiles(shp_dir,image_dir=None):
+def format_shapefiles(shp_dir, buffer, image_dir=None):
     """
     Format the shapefiles from extract.py into a list of annotations compliant with DeepForest -> [image_name, xmin,ymin,xmax,ymax,label]
     shp_dir: directory of shapefiles
@@ -112,7 +112,7 @@ def format_shapefiles(shp_dir,image_dir=None):
     annotations = [ ]
     for shapefile in shapefiles:
         rgb_path = find_rgb_path(shapefile, image_dir)
-        result = shapefile_to_annotations(shapefile, rgb_path)
+        result = shapefile_to_annotations(shapefile, rgb_path, buffer)
         #skip invalid files
         if result is None:
             continue
@@ -152,9 +152,9 @@ def split_test_train(annotations, resample_n=100):
     return train, test
      
     
-def generate(shp_dir, empty_frames_path=None, empty_frames=0, save_dir="."):
+def generate(shp_dir, empty_frames_path=None, empty_frames=0, save_dir=".", buffer=25):
     """Parse annotations, create a test split and train a model"""
-    annotations = format_shapefiles(shp_dir)   
+    annotations = format_shapefiles(shp_dir, buffer)   
     
     #Split train and test
     train, test = split_test_train(annotations, resample_n=1000)
