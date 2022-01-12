@@ -2,10 +2,12 @@
 from deepforest import main
 import os
 import cv2
+import torch
 
 TRAINED_MODEL = "/blue/ewhite/everglades/Zooniverse/20211215_112228/species_model.pl"
 CROP_DIR = "/blue/ewhite/everglades/Zooniverse/mining/"
 m = main.deepforest.load_from_checkpoint(TRAINED_MODEL)
+m.model.load_state_dict(torch.load(TRAINED_MODEL))
 
 files = [
 "/orange/ewhite/everglades/2021/SouthwestRanches/SouthwestRanches_04_19_2021_inspire.tif",
