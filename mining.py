@@ -3,12 +3,14 @@ from deepforest import main
 import os
 import cv2
 import torch
+import pandas as pd
 
 TRAINED_MODEL = "/blue/ewhite/everglades/Zooniverse/20211215_112228/species_model.pl"
+train = pd.read_csv("/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv")
+label_dict = {key:value for value, key in enumerate(train.label.unique())}
+m = main.deepforest(num_classes=len(label_dict), label_dict=label_dict)
+m.load_state_dict(torch.load(TRAINED_MODEL, map_location="cpu")["state_dict"])
 CROP_DIR = "/blue/ewhite/everglades/Zooniverse/mining/"
-m = main.deepforest.load_from_checkpoint(TRAINED_MODEL)
-m.model.load_state_dict(torch.load(TRAINED_MODEL))
-
 files = [
 "/orange/ewhite/everglades/2021/SouthwestRanches/SouthwestRanches_04_19_2021_inspire.tif",
 "/orange/ewhite/everglades/2021/SouthwestRanches/SouthwestRanches_04_19_2021_phantom.tif"
