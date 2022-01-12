@@ -25,8 +25,10 @@ for f in files:
         boxes, crop = result
         boxes = boxes[boxes.score > 0.5]
         filtered_boxes = boxes[boxes.label.isin(["Great Blue Heron","Snowy Egret","Roseate Spoonbill","Wood Stork"])] 
-        highest_scores = filtered_boxes.groupby("label").apply(lambda x: x.sort_values(by="score",ascending=False).head(50))
-        if not highest_scores.empty:
+        highest_scores = filtered_boxes.groupby("label").apply(lambda x: x.sort_values(by="score",ascending=False).head(50)).reset_index(drop=True)
+        if not highest_scores.empty:         
+            highest_scores['geometry'] = highest_scores.apply(
+                   lambda x: geometry.box(x.xmin, x.ymin, x.xmax, x.ymax), axis=1)            
             highest_scores = gpd.GeoDataFrame(highest_scores, geometry="geometry")
             highest_scores.to_file("{}/{}_{}.shp".format(CROP_DIR,basename, index))
             cv2.imwrite("{}/{}_{}.png".format(CROP_DIR,basename, index), crop)
