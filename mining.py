@@ -13,7 +13,7 @@ files = [
 ]
 
 for f in files:
-    basename = os.path.splitext(os.path.basename(f))
+    basename = os.path.splitext(os.path.basename(f))[0]
     results = m.predict_tile(raster_path=f, mosaic=False)
     for index, boxes, crop in enumerate(results):
         boxes = boxes[boxes.score > 0.5]
