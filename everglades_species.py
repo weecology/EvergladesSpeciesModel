@@ -235,10 +235,18 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
                                             batch_size = model.config["batch_size"],
                                             collate_fn=utilities.collate_fn,
                                             num_workers=model.config["workers"])
-    
+
+    # labs = []
+    # for batch in dataloader:
+    #     paths, x, y = batch
+    #     batch_labels = np.concatenate([i["labels"].numpy() for i in y])
+    #     labs.append(batch_labels)
+    # labs = np.concatenate(labs)
+    # pd.Series(labs).value_counts().sort_index() / sum(pd.Series(labs).value_counts())
+
     model.trainer.fit(model, dataloader)
     model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
-    
+
     #Manually convert model
     results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
@@ -304,7 +312,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     return model
 
 if __name__ == "__main__":
-    regenerate = True
+    regenerate = False
     empty_frames = 0
     if regenerate:
         create_species_model.generate(shp_dir="/blue/ewhite/everglades/Zooniverse/parsed_images/",
@@ -316,8 +324,8 @@ if __name__ == "__main__":
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
-                balance_classes=False,
-                balance_min = 0,
-                balance_max = 100000,
-                one_vs_all_sp=None,
-                experiment_name="buffer-baseline")
+                balance_classes=True,
+                balance_min = 1000,
+                balance_max = 10000,
+                one_vs_all_sp='Wood Stork',
+                experiment_name="wost-single-bal-1000-10000")
