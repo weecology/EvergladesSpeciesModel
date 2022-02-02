@@ -237,6 +237,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
                                             num_workers=model.config["workers"])
     
     model.trainer.fit(model, dataloader)
+    model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
     
     #Manually convert model
     results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
@@ -299,9 +300,6 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         empty_frame_df = pd.read_csv(empty_images_path)
         empty_images = empty_frame_df.image_path.unique()    
         predict_empty_frames(model, empty_images, comet_logger)
-    
-    #save model
-    model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
 
     return model
 
