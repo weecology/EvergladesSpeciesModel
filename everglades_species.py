@@ -254,6 +254,9 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         try:
             results["results"].to_csv("{}/iou_dataframe.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/iou_dataframe.csv".format(model_savedir))
+
+            results["predictions"].to_csv("{}/predictions_dataframe.csv".format(model_savedir))
+            comet_logger.experiment.log_asset("{}/predictions_dataframe.csv".format(model_savedir))
             
             results["class_recall"].to_csv("{}/class_recall.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/class_recall.csv".format(model_savedir))
