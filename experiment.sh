@@ -3,7 +3,7 @@
 # Command line args for dict
 sbatch <<EOT
 #!/bin/bash
-#SBATCH --job-name=EvergladesSpeciesModel   # Job name
+#SBATCH --job-name=EvSpecies   # Job name
 #SBATCH --mail-type=END               # Mail events
 #SBATCH --mail-user=ethanwhite@ufl.edu  # Where to send mail
 #SBATCH --account=ewhite

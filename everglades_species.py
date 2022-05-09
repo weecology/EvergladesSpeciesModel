@@ -19,6 +19,7 @@ from pathlib import Path, PurePath
 import torch.nn as nn
 import math
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
+import create_species_model
 
 def is_empty(precision_curve, threshold):
     precision_curve.score = precision_curve.score.astype(float)
@@ -125,7 +126,12 @@ def index_to_example(index, results, test_path, comet_experiment):
     # Return sample, assetId (index is added automatically)
     return {"sample": tmp_image_name, "assetId": results["imageId"]}
 
-def train_model(train_path, test_path, empty_images_path=None, save_dir=".", balance_min = 0, balance_max = 100000, debug = False, one_vs_all_sp = None, experiment_name="ev-species"):
+def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
+                gbd_pretrain = True,
+                balance_classes = False, balance_min = 0, balance_max = 100000,
+                one_vs_all_sp = None,
+                experiment_name="ev-species",
+                debug = False):
     """Train a DeepForest model"""
     
     comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name=experiment_name)
@@ -147,14 +153,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
 
     if one_vs_all_sp:
         train["label"] = np.where(train["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        train_path = PurePath(Path(train_path).parents[0], Path(f'species_train_tmp_{timestamp}.csv'))
-        train_path = str(train_path)
-        train.to_csv(train_path)
         test["label"] = np.where(test["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        test_path = PurePath(Path(test_path).parents[0], Path(f'species_test_tmp_{timestamp}.csv'))
-        test_path = str(test_path)
-        test.to_csv(test_path)
 
+    #Store test train split for run to allow multiple simultaneous run starts
+    train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
+    test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
+    train.to_csv(train_path)
+    test.to_csv(test_path)
 
     #Set config and train'    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
@@ -163,12 +168,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
     
     model = main.deepforest(num_classes=len(train.label.unique()),label_dict=label_dict)
 
+    if gbd_pretrain:
     # Use the backbone and regression head from the global bird detector to transfer
     # learning about bird detection and bird related features 
-    global_bird_detector = main.deepforest()
-    global_bird_detector.use_bird_release()
-    model.model.backbone.load_state_dict(global_bird_detector.model.backbone.state_dict())
-    model.model.head.regression_head.load_state_dict(global_bird_detector.model.head.regression_head.state_dict())
+        global_bird_detector = main.deepforest()
+        global_bird_detector.use_bird_release()
+        model.model.backbone.load_state_dict(global_bird_detector.model.backbone.state_dict())
+        model.model.head.regression_head.load_state_dict(global_bird_detector.model.head.regression_head.state_dict())
     
     model.config["train"]["csv_file"] = train_path
     model.config["train"]["root_dir"] = os.path.dirname(train_path)
@@ -191,39 +197,56 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
     im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)    
     model.create_trainer(callbacks=[im_callback], logger=comet_logger)
     
-    #Overwrite sampler to weight by class
     ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
-                             root_dir=model.config["train"]["root_dir"],
-                             transforms=dataset.get_transform(augment=True),
-                             label_dict=model.label_dict)
-
-    #get class weights
-    train_data = pd.read_csv(train_path)
-    class_counts = train_data.groupby('label')['label'].count()
-    class_counts[class_counts < balance_min] = balance_min    #Provide a floor to class weights
-    class_counts[class_counts > balance_max] = balance_max    #Provide a ceiling to class weights
-    class_weights = dict(class_counts / sum(class_counts))
-    class_weights_numeric_label = {model.label_dict[key]: value for key, value in class_weights.items()}
-    class_weights_numeric_label = {key: class_weights_numeric_label[key] for key in sorted(class_weights_numeric_label)}
-
-    data_weights = []
-    #upsample rare classes more as a residual
-    for idx, batch in enumerate(ds):
-        path, image, targets = batch
-        labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
-        image_weight = sum([class_weights[x] for x in labels])
-        data_weights.append(1 / image_weight)
-        
-    data_weights = data_weights / sum(data_weights)
-    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights = torch.DoubleTensor(data_weights),
-                                                             num_samples=len(ds))
-    dataloader = torch.utils.data.DataLoader(ds,
-                                             batch_size = model.config["batch_size"],
-                                             sampler = sampler,
-                                             collate_fn=utilities.collate_fn,
-                                             num_workers=model.config["workers"])
-    model.trainer.fit(model, dataloader)
+                            root_dir=model.config["train"]["root_dir"],
+                            transforms=dataset.get_transform(augment=True),
+                            label_dict=model.label_dict)
     
+    if balance_classes:
+    #Overwrite sampler to weight by class
+    
+        #get class weights
+        train_data = pd.read_csv(train_path)
+        class_counts = train_data.groupby('label')['label'].count()
+        class_counts[class_counts < balance_min] = balance_min    #Provide a floor to class weights
+        class_counts[class_counts > balance_max] = balance_max    #Provide a ceiling to class weights
+        class_weights = dict(class_counts / sum(class_counts))
+        class_weights_numeric_label = {model.label_dict[key]: value for key, value in class_weights.items()}
+        class_weights_numeric_label = {key: class_weights_numeric_label[key] for key in sorted(class_weights_numeric_label)}
+    
+        data_weights = []
+        #upsample rare classes more as a residual
+        for idx, batch in enumerate(ds):
+            path, image, targets = batch
+            labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
+            image_weight = np.median([class_weights[x] for x in labels]) # mean or median instead of sum?
+            data_weights.append(1 / image_weight)
+            
+        data_weights = data_weights / sum(data_weights)
+        sampler = torch.utils.data.sampler.WeightedRandomSampler(weights = torch.DoubleTensor(data_weights),
+                                                                 num_samples=len(ds))
+        dataloader = torch.utils.data.DataLoader(ds,
+                                            batch_size = model.config["batch_size"],
+                                            sampler = sampler,
+                                            collate_fn=utilities.collate_fn,
+                                            num_workers=model.config["workers"])
+    else:
+        dataloader = torch.utils.data.DataLoader(ds,
+                                            batch_size = model.config["batch_size"],
+                                            collate_fn=utilities.collate_fn,
+                                            num_workers=model.config["workers"])
+
+    # labs = []
+    # for batch in dataloader:
+    #     paths, x, y = batch
+    #     batch_labels = np.concatenate([i["labels"].numpy() for i in y])
+    #     labs.append(batch_labels)
+    # labs = np.concatenate(labs)
+    # pd.Series(labs).value_counts().sort_index() / sum(pd.Series(labs).value_counts())
+
+    model.trainer.fit(model, dataloader)
+    model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
+
     #Manually convert model
     results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
@@ -231,6 +254,9 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
         try:
             results["results"].to_csv("{}/iou_dataframe.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/iou_dataframe.csv".format(model_savedir))
+
+            results["predictions"].to_csv("{}/predictions_dataframe.csv".format(model_savedir))
+            comet_logger.experiment.log_asset("{}/predictions_dataframe.csv".format(model_savedir))
             
             results["class_recall"].to_csv("{}/class_recall.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/class_recall.csv".format(model_savedir))
@@ -285,17 +311,24 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".", bal
         empty_frame_df = pd.read_csv(empty_images_path)
         empty_images = empty_frame_df.image_path.unique()    
         predict_empty_frames(model, empty_images, comet_logger)
-    
-    #save model
-    model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
 
     return model
 
 if __name__ == "__main__":
+    regenerate = False
+    empty_frames = 0
+    if regenerate:
+        create_species_model.generate(shp_dir="/blue/ewhite/everglades/Zooniverse/parsed_images/",
+                                    empty_frames_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
+                                    save_dir="/blue/ewhite/everglades/Zooniverse/predictions/",
+                                    empty_frames=empty_frames,
+                                    buffer=25)
     train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
-                balance_min = 0,
-                balance_max = 100000,
-                one_vs_all_sp="Great Egret",
-                experiment_name="onevall-greg")
+                gbd_pretrain=True,
+                balance_classes=True,
+                balance_min = 1000,
+                balance_max = 10000,
+                one_vs_all_sp='Wood Stork',
+                experiment_name="wost-single-bal-1000-10000")
