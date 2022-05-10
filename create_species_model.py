@@ -165,6 +165,7 @@ def get_empty_frames(shp_dir, empty_frames_dir, max_empty_frames=0):
                         Path(shp_dir, empty_frame.name))
 
     #Add files with blank annotations
+    empty_frames = [Path(path).name for path in empty_frames]
     empty_frames_df = pd.DataFrame(empty_frames, columns = ['image_path'])
     num_samples = min(max_empty_frames, len(empty_frames))
     assert num_samples > 0, "Empty frames were requested but no empty frames available in empty_frames_dir"
