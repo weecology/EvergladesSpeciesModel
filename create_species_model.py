@@ -9,6 +9,7 @@ import glob
 from datetime import datetime
 import warnings
 from pathlib import Path
+import shutil
 
 #Define shapefile utility
 def shapefile_to_annotations(shapefile, rgb_path, buffer, savedir="."):
@@ -150,23 +151,25 @@ def split_test_train(annotations, resample_n=100):
     test = annotations[~(annotations.image_path.isin(train_names))]
 
     return train, test
-     
-    
-def generate(shp_dir, empty_frames_path=None, empty_frames=0, save_dir=".", buffer=25):
-    """Parse annotations, create a test split and train a model"""
-    annotations = format_shapefiles(shp_dir, buffer)   
-    
-    #Split train and test
-    train, test = split_test_train(annotations, resample_n=1000)
-    
-    ##Add some empty images to train and test
-    empty_frames_df = pd.read_csv(empty_frames_path, index_col=0)
-    empty_frames_df = empty_frames_df.sample(n=empty_frames)
 
-    #Convert full paths to filenames to match other processing
-    empty_frames_df['image_path'] = [Path(path).name for path in empty_frames_df['image_path']]
-    
-    #add some blank annotations
+def get_empty_frames(shp_dir, empty_frames_dir, max_empty_frames=0):
+    empty_frames = glob.glob(f'{empty_frames_dir}/**/*.png')
+
+    #Make sure the empty frames are in the main image directory
+    shp_dir = Path(shp_dir)
+    empty_frames_dir = Path(empty_frames_dir)
+    for empty_frame in empty_frames:
+        empty_frame = Path(empty_frame)
+        if not Path.is_file(Path(shp_dir, empty_frame.name)):
+            shutil.copy(empty_frame,
+                        Path(shp_dir, empty_frame.name))
+
+    #Add files with blank annotations
+    empty_frames_df = pd.DataFrame(empty_frames, columns = ['image_path'])
+    num_samples = min(max_empty_frames, len(empty_frames))
+    assert num_samples > 0, "Empty frames were requested but no empty frames available in empty_frames_dir"
+    print(f"Using {num_samples} empty frames split between train and test")
+    empty_frames_df = empty_frames_df.sample(n=num_samples)
     empty_frames_df["xmin"] = 0
     empty_frames_df["ymin"] = 0
     empty_frames_df["xmax"] = 0
@@ -174,9 +177,21 @@ def generate(shp_dir, empty_frames_path=None, empty_frames=0, save_dir=".", buff
     empty_frames_df["label"] = "Empty"
     
     empty_train, empty_test = split_test_train(empty_frames_df)
+    return empty_train, empty_test
 
-    train = pd.concat([train, empty_train])
-    test = pd.concat([test, empty_test])
+def generate(shp_dir, empty_frames_dir=None, max_empty_frames=0, save_dir=".", buffer=25):
+    """Parse annotations, create a test split and train a model"""
+    print("[INFO] Generating data for species classification model")
+    annotations = format_shapefiles(shp_dir, buffer)   
+    
+    #Split train and test
+    print("[INFO] Generating test/train split")
+    train, test = split_test_train(annotations, resample_n=1000)
+    if empty_frames_dir and max_empty_frames > 0:
+        print("[INFO] Adding empty frames")
+        empty_train, empty_test = get_empty_frames(shp_dir, empty_frames_dir, max_empty_frames)
+        train = pd.concat([train, empty_train])
+        test = pd.concat([test, empty_test])
        
     #Enforce rounding to pixels, pandas "Int64" dtype for nullable arrays https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html
     train.xmin = train.xmin.astype("Int64")
@@ -193,18 +208,19 @@ def generate(shp_dir, empty_frames_path=None, empty_frames=0, save_dir=".", buff
     #Save
     
     train_path = "{}/species_train.csv".format(shp_dir)
-    test_path = "{}/species_test.csv".format(shp_dir)
-    empty_test_path = "{}/empty_test.csv".format(shp_dir)
-    
     train.to_csv(train_path, index=False,header=True)
+    test_path = "{}/species_test.csv".format(shp_dir)
     test.to_csv(test_path, index=False,header=True)
-    empty_test.to_csv(empty_test_path, index=True)
+    if empty_frames_dir and max_empty_frames > 0:
+        empty_test_path = "{}/empty_test.csv".format(shp_dir)
+        empty_test.to_csv(empty_test_path, index=True)
+    print("[INFO] Dataset generation complete")
         
     
 if __name__ == "__main__":
     generate(
         shp_dir="/blue/ewhite/everglades/Zooniverse/parsed_images/",
-        empty_frames_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
+        empty_frames_dir="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames/",
         save_dir="/blue/ewhite/everglades/Zooniverse/predictions/"
     )
     
