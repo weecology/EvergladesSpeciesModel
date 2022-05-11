@@ -19,6 +19,6 @@ ulimit -c 0
 ml git
 cd /blue/ewhite/everglades/EvergladesSpeciesModel
 git checkout $1
-source activate EvergladesSpeciesModel
+source activate ESM
 python everglades_species.py
 EOT
