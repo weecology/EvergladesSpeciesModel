@@ -14,6 +14,8 @@ files = glob.glob("/blue/ewhite/everglades/projected_mosaics/2022/*/*.tif")
 for f in files:
     basename = os.path.splitext(os.path.basename(f))[0]
     results = m.predict_tile(raster_path=f, mosaic=False, patch_size=1500)
+    if results is None:
+        continue
     for index, result in enumerate(results):
         original_boxes, crop = result
         boxes = original_boxes[original_boxes.score > 0.6]
