@@ -316,12 +316,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
 
 if __name__ == "__main__":
     regenerate = False
-    empty_frames = 0
+    max_empty_frames = 0
     if regenerate:
+        print(f"[INFO] Regenerating dataset with up to {max_empty_frames} empty frames")
         create_species_model.generate(shp_dir="/blue/ewhite/everglades/Zooniverse/parsed_images/",
                                     empty_frames_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
                                     save_dir="/blue/ewhite/everglades/Zooniverse/predictions/",
-                                    empty_frames=empty_frames,
+                                    max_empty_frames=max_empty_frames,
                                     buffer=25)
     train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",

@@ -14,11 +14,11 @@ sbatch <<EOT
 #SBATCH --output=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
 #SBATCH --error=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.err
 #SBATCH --partition=gpu
-#SBATCH --gpus=1
+#SBATCH --gpus=a100:1
 ulimit -c 0
 ml git
 cd /blue/ewhite/everglades/EvergladesSpeciesModel
 git checkout $1
-source activate EvergladesSpeciesModel
+source activate ESM
 python everglades_species.py
 EOT
