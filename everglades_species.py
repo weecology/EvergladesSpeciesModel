@@ -194,8 +194,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         comet_logger.experiment.log_parameter("Training_Annotations",train.shape[0])    
         comet_logger.experiment.log_parameter("Testing_Annotations",test.shape[0])
         
-    im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)    
-    model.create_trainer(callbacks=[im_callback], logger=comet_logger)
+    #im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)    
+    model.create_trainer(logger=comet_logger)
     
     ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
                             root_dir=model.config["train"]["root_dir"],
@@ -332,4 +332,4 @@ if __name__ == "__main__":
                 balance_min = 1000,
                 balance_max = 10000,
                 one_vs_all_sp=None,
-                experiment_name="wost-single-bal-1000-10000")
+                experiment_name="baseline-no-balance")
