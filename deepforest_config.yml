@@ -5,11 +5,11 @@
 workers: 8
 gpus: 1
 distributed_backend:
-batch_size: 32
+batch_size: 8
 
 #Non-max supression of overlapping predictions
 nms_thresh: 0.05
-score_thresh: 0.1
+score_thresh: 0.3
 
 train:
 
@@ -20,12 +20,12 @@ train:
     lr: 0.001
 
     #Print loss every n epochs
-    epochs: 10
+    epochs: 62
     #Useful debugging flag in pytorch lightning, set to True to get a single batch of training to test settings.
     fast_dev_run: False
 
     #pin images to GPU memory for fast training. This depends on GPU size and number of images.
-    preload_images: False
+    preload_images: True
     
 validation:
     #callback args
