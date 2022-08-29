@@ -134,7 +134,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
                 debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name=experiment_name)
+    comet_logger = CometLogger(project_name="everglades-species", workspace="bw4sz", experiment_name=experiment_name)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
@@ -328,8 +328,8 @@ if __name__ == "__main__":
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
-                balance_classes=True,
+                balance_classes=False,
                 balance_min = 1000,
                 balance_max = 10000,
-                one_vs_all_sp='Wood Stork',
+                one_vs_all_sp=None,
                 experiment_name="wost-single-bal-1000-10000")
