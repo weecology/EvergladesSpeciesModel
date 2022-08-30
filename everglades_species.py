@@ -245,72 +245,72 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     # pd.Series(labs).value_counts().sort_index() / sum(pd.Series(labs).value_counts())
 
     model.trainer.fit(model, dataloader)
-    #model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
+    model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
 
-    ##Manually convert model
-    #results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
+    #Manually convert model
+    results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
-    #if comet_logger is not None:
-        #try:
-            #results["results"].to_csv("{}/iou_dataframe.csv".format(model_savedir))
-            #comet_logger.experiment.log_asset("{}/iou_dataframe.csv".format(model_savedir))
+    if comet_logger is not None:
+        try:
+            results["results"].to_csv("{}/iou_dataframe.csv".format(model_savedir))
+            comet_logger.experiment.log_asset("{}/iou_dataframe.csv".format(model_savedir))
 
-            #results["predictions"].to_csv("{}/predictions_dataframe.csv".format(model_savedir))
-            #comet_logger.experiment.log_asset("{}/predictions_dataframe.csv".format(model_savedir))
+            results["predictions"].to_csv("{}/predictions_dataframe.csv".format(model_savedir))
+            comet_logger.experiment.log_asset("{}/predictions_dataframe.csv".format(model_savedir))
             
-            #results["class_recall"].to_csv("{}/class_recall.csv".format(model_savedir))
-            #comet_logger.experiment.log_asset("{}/class_recall.csv".format(model_savedir))
+            results["class_recall"].to_csv("{}/class_recall.csv".format(model_savedir))
+            comet_logger.experiment.log_asset("{}/class_recall.csv".format(model_savedir))
             
-            #for index, row in results["class_recall"].iterrows():
-                #comet_logger.experiment.log_metric("{}_Recall".format(species_abbrev_lookup[row["label"]]),row["recall"])
-                #comet_logger.experiment.log_metric("{}_Precision".format(species_abbrev_lookup[row["label"]]),row["precision"])
+            for index, row in results["class_recall"].iterrows():
+                comet_logger.experiment.log_metric("{}_Recall".format(species_abbrev_lookup[row["label"]]),row["recall"])
+                comet_logger.experiment.log_metric("{}_Precision".format(species_abbrev_lookup[row["label"]]),row["precision"])
             
-            #comet_logger.experiment.log_metric("Average Class Recall",results["class_recall"].recall.mean())
-            #comet_logger.experiment.log_metric("Box Recall",results["box_recall"])
-            #comet_logger.experiment.log_metric("Box Precision",results["box_precision"])
+            comet_logger.experiment.log_metric("Average Class Recall",results["class_recall"].recall.mean())
+            comet_logger.experiment.log_metric("Box Recall",results["box_recall"])
+            comet_logger.experiment.log_metric("Box Precision",results["box_precision"])
             
-            #comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
+            comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
             
-            ## Make predicted labels while dealing with test data that does not get a bounding box.
-            ## These predicted labels return as nan, so check for them using y == y (returns False for nan)
-            ## and then replace them with one more than the available class indexes for confusion matrix
-            #ypred = results["results"].predicted_label       
-            #ypred = np.asarray([model.label_dict[y] if y == y else model.num_classes for y in ypred])  
-            #ypred = torch.from_numpy(ypred)
-            #ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes + 1).numpy()
+            # Make predicted labels while dealing with test data that does not get a bounding box.
+            # These predicted labels return as nan, so check for them using y == y (returns False for nan)
+            # and then replace them with one more than the available class indexes for confusion matrix
+            ypred = results["results"].predicted_label       
+            ypred = np.asarray([model.label_dict[y] if y == y else model.num_classes for y in ypred])  
+            ypred = torch.from_numpy(ypred)
+            ypred = torch.nn.functional.one_hot(ypred.to(torch.int64), num_classes = model.num_classes + 1).numpy()
             
-            ## Code true labels to match indexes from model training
-            #ytrue = results["results"].true_label
-            #ytrue = np.asarray([model.label_dict[y] for y in ytrue])
-            #ytrue = torch.from_numpy(ytrue)
+            # Code true labels to match indexes from model training
+            ytrue = results["results"].true_label
+            ytrue = np.asarray([model.label_dict[y] for y in ytrue])
+            ytrue = torch.from_numpy(ytrue)
 
-            ## Create one hot representation with extra class for test data with no bounding box
-            #ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes + 1).numpy()
+            # Create one hot representation with extra class for test data with no bounding box
+            ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes + 1).numpy()
 
-            ## Add a label for undetected birds and create confusion matrix
-            #model.label_dict.update({'Bird Not Detected': 6})
-            #comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
-                                                         #y_predicted=ypred,
-                                                         #labels = list(model.label_dict.keys()),
-                                                         #index_to_example_function=index_to_example,
-                                                         #results = results["results"],
-                                                         #test_path=test_path,
-                                                         #comet_experiment = comet_logger.experiment)
-        #except Exception as e:
-            #print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
+            # Add a label for undetected birds and create confusion matrix
+            model.label_dict.update({'Bird Not Detected': 6})
+            comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
+                                                         y_predicted=ypred,
+                                                         labels = list(model.label_dict.keys()),
+                                                         index_to_example_function=index_to_example,
+                                                         results = results["results"],
+                                                         test_path=test_path,
+                                                         comet_experiment = comet_logger.experiment)
+        except Exception as e:
+            print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
     
-    ##Create a positive bird recall curve
-    #test_frame_df = pd.read_csv(test_path)
-    #dirname = os.path.dirname(test_path)
-    #test_frame_df["image_path"] = test_frame_df["image_path"].apply(lambda x: os.path.join(dirname,x))
-    #empty_images = test_frame_df.image_path.unique()    
-    #predict_empty_frames(model, empty_images, comet_logger, invert=True)
+    #Create a positive bird recall curve
+    test_frame_df = pd.read_csv(test_path)
+    dirname = os.path.dirname(test_path)
+    test_frame_df["image_path"] = test_frame_df["image_path"].apply(lambda x: os.path.join(dirname,x))
+    empty_images = test_frame_df.image_path.unique()    
+    predict_empty_frames(model, empty_images, comet_logger, invert=True)
     
-    ##Test on empy frames
-    #if empty_images_path:
-        #empty_frame_df = pd.read_csv(empty_images_path)
-        #empty_images = empty_frame_df.image_path.unique()    
-        #predict_empty_frames(model, empty_images, comet_logger)
+    #Test on empy frames
+    if empty_images_path:
+        empty_frame_df = pd.read_csv(empty_images_path)
+        empty_images = empty_frame_df.image_path.unique()    
+        predict_empty_frames(model, empty_images, comet_logger)
 
     return model
 
