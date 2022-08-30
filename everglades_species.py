@@ -332,4 +332,4 @@ if __name__ == "__main__":
                 balance_min = 1000,
                 balance_max = 10000,
                 one_vs_all_sp=None,
-                experiment_name="no-workers")
+                experiment_name="2 gpus_batch8_40workers_nopreload")
