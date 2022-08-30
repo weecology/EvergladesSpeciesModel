@@ -5,13 +5,13 @@
 #SBATCH --account=ewhite
 #SBATCH --nodes=1                 # Number of MPI ran
 #SBATCH --cpus-per-task=10
-#SBATCH --mem=50GB
+#SBATCH --mem=80GB
 #SBATCH --time=48:00:00       #Time limit hrs:min:sec
 #SBATCH --output=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
 #SBATCH --error=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.err
 #SBATCH --partition=gpu
-#SBATCH --gpus=a100:2
+#SBATCH --gpus=a100:1
 
 ulimit -c 0
 source activate DeepTreeAttention
-python everglades_species.py
+python -m cProfile -o baseline.pstats everglades_species.py

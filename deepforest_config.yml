@@ -5,7 +5,7 @@
 workers: 10
 gpus: 1
 distributed_backend: gpu
-batch_size: 32
+batch_size: 16
 
 #Non-max supression of overlapping predictions
 nms_thresh: 0.05
@@ -20,7 +20,7 @@ train:
     lr: 0.001
 
     #Print loss every n epochs
-    epochs: 62
+    epochs: 3
     #Useful debugging flag in pytorch lightning, set to True to get a single batch of training to test settings.
     fast_dev_run: False
 
