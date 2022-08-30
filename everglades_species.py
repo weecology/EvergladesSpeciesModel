@@ -20,6 +20,7 @@ import torch.nn as nn
 import math
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 import create_species_model
+from pytorch_lightning import Trainer
 
 def is_empty(precision_curve, threshold):
     precision_curve.score = precision_curve.score.astype(float)
@@ -194,8 +195,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         comet_logger.experiment.log_parameter("Training_Annotations",train.shape[0])    
         comet_logger.experiment.log_parameter("Testing_Annotations",test.shape[0])
         
-    #im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)    
-    model.create_trainer(logger=comet_logger, strategy="ddp")
+    #im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)        
+    trainer = Trainer(
+        accelerator="gpu",
+        strategy="ddp",
+        devices=model.config["gpus"],
+        enable_checkpointing=False
+    )
     
     ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
                             root_dir=model.config["train"]["root_dir"],
@@ -244,8 +250,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     # labs = np.concatenate(labs)
     # pd.Series(labs).value_counts().sort_index() / sum(pd.Series(labs).value_counts())
 
-    model.trainer.fit(model, dataloader)
-    model.trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
+    trainer.fit(model, dataloader)
+    trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
 
     #Manually convert model
     results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
