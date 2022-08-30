@@ -151,7 +151,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     #Log the number of training and test
     train = pd.read_csv(train_path)
     test = pd.read_csv(test_path)
-
+    
+    #Add weak annotations from photoshop to train
+    weak_train = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/split_annotations.csv")
+    train = pd.concat([train, weak_train])
+    
     if one_vs_all_sp:
         train["label"] = np.where(train["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
         test["label"] = np.where(test["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
