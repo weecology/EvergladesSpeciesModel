@@ -328,8 +328,8 @@ if __name__ == "__main__":
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
-                balance_classes=False,
+                balance_classes=True,
                 balance_min = 1000,
                 balance_max = 10000,
                 one_vs_all_sp=None,
-                experiment_name="2 gpus_batch8_40workers_nopreload")
+                experiment_name="longer_term_balance")
