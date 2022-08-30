@@ -200,7 +200,9 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         accelerator="gpu",
         strategy="ddp",
         devices=model.config["gpus"],
-        enable_checkpointing=False
+        enable_checkpointing=False,
+        max_epochs=model.config["train"]["epochs"],
+        logger=comet_logger
     )
     
     ds = dataset.TreeDataset(csv_file=model.config["train"]["csv_file"],
