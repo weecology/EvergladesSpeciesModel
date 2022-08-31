@@ -154,6 +154,10 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     #Add weak annotations from photoshop to train
     weak_train = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/split_annotations.csv")
+    weak_train = weak_train[weak_train.label.isin(['Great Egret', 'Roseate Spoonbill', 'White Ibis',
+           'Great Blue Heron', 'Wood Stork', 'Snowy Egret',
+           'Anhinga'])]
+    
     train = pd.concat([train, weak_train])
     
     if one_vs_all_sp:
