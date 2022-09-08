@@ -3,7 +3,6 @@ import comet_ml
 from pytorch_lightning.loggers import CometLogger
 from deepforest.callbacks import images_callback
 from deepforest import main
-from deepforest import visualize
 from deepforest import dataset
 from deepforest import utilities
 import pandas as pd
@@ -17,7 +16,6 @@ from matplotlib import pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path, PurePath
 import torch.nn as nn
-import math
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 import create_species_model
 from pytorch_lightning import Trainer
@@ -158,6 +156,16 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
            'Anhinga'])]
     test = test[test.label.isin(train.label)]
     
+    #add in weak annotations
+    empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
+    #sanitize boxes
+    empty_frames = empty_frames[~(empty_frames.xmin == empty_frames.xmax)]
+    empty_frames = empty_frames[~(empty_frames.ymin == empty_frames.ymax)]
+    
+    empty_frames = empty_frames.sample(n=100)
+    empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
+    train = pd.concat([train, empty_frames])
+    
     #Store test train split for run to allow multiple simultaneous run starts
     train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
     test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
@@ -196,6 +204,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         comet_logger.experiment.log_parameters(model.config)
         comet_logger.experiment.log_parameter("Training_Annotations",train.shape[0])    
         comet_logger.experiment.log_parameter("Testing_Annotations",test.shape[0])
+        comet_logger.experiment.log_parameter("model_savedir",model_savedir)
         
     #im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)        
     trainer = Trainer(
@@ -283,6 +292,10 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         empty_frame_df = pd.read_csv(empty_images_path)
         empty_images = empty_frame_df.image_path.unique()    
         predict_empty_frames(model, empty_images, comet_logger)
+        
+        for x in empty_images:
+            img = model.predict_image(path=x, return_plot=True)
+            comet_logger.experiment.log_image(img,"empty_frame_{}".format(x))
 
     return model
 
