@@ -162,7 +162,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     
     #Confirm no name overlaps
-    overlapping_images = train.image_path[train.image_path.unique() in empty_frames.image_path.unique()]
+    overlapping_images = train[train.image_path.isin(empty_frames.image_path.unique())]
     if not len(overlapping_images) == 0:
         raise IOError("Overlapping images: {}".format(overlapping_images))
     
