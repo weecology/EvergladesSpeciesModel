@@ -158,6 +158,10 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     #add in weak annotations
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
+    #sanitize boxes
+    empty_frames = empty_frames[~(empty_frames.xmin == empty_frames.xmax)]
+    empty_frames = empty_frames[~(empty_frames.ymin == empty_frames.ymax)]
+    
     empty_frames = empty_frames.sample(n=100)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     train = pd.concat([train, empty_frames])
