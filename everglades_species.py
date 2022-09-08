@@ -158,7 +158,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     #add in weak annotations
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
-    empty_frames = empty_frames.sample(n=1)
+    empty_frames = empty_frames.sample(n=200)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     train = pd.concat([train, empty_frames])
     
@@ -167,6 +167,9 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
     train.to_csv(train_path)
     test.to_csv(test_path)
+
+    comet_logger.experiment.log_table("train.csv", train)
+    comet_logger.experiment.log_table("test.csv", test)
 
     #Set config and train'    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
