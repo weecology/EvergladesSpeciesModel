@@ -160,6 +160,12 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
     empty_frames = empty_frames.sample(n=200)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
+    
+    #Confirm no name overlaps
+    overlapping_images = train.image_path[train.image_path.unique() in empty_frames.image_path.unique()]
+    if not len(overlapping_images) == 0:
+        raise IOError("Overlapping images: {}".format(overlapping_images))
+    
     train = pd.concat([train, empty_frames])
     
     #Store test train split for run to allow multiple simultaneous run starts
