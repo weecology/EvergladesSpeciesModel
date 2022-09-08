@@ -5,7 +5,7 @@
 #SBATCH --account=ewhite
 #SBATCH --nodes=1                 # Number of MPI r
 #SBATCH --cpus-per-task=30
-#SBATCH --mem=80GB
+#SBATCH --mem=140GB
 #SBATCH --time=48:00:00       #Time limit hrs:min:sec
 #SBATCH --output=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
 #SBATCH --error=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.err

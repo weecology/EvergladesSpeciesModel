@@ -129,8 +129,6 @@ def index_to_example(index, results, test_path, comet_experiment):
 
 def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
                 gbd_pretrain = True,
-                balance_classes = False, balance_min = 0, balance_max = 100000,
-                one_vs_all_sp = None,
                 experiment_name="ev-species",
                 debug = False):
     """Train a DeepForest model"""
@@ -160,10 +158,6 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
            'Anhinga'])]
     test = test[test.label.isin(train.label)]
     
-    if one_vs_all_sp:
-        train["label"] = np.where(train["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-        test["label"] = np.where(test["label"] == one_vs_all_sp, one_vs_all_sp, "Other Species")
-
     #Store test train split for run to allow multiple simultaneous run starts
     train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
     test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
@@ -218,48 +212,10 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
                             transforms=dataset.get_transform(augment=True),
                             label_dict=model.label_dict)
     
-    if balance_classes:
-    #Overwrite sampler to weight by class
-    
-        #get class weights
-        train_data = pd.read_csv(train_path)
-        class_counts = train_data.groupby('label')['label'].count()
-        class_counts[class_counts < balance_min] = balance_min    #Provide a floor to class weights
-        class_counts[class_counts > balance_max] = balance_max    #Provide a ceiling to class weights
-        class_weights = dict(class_counts / sum(class_counts))
-        class_weights_numeric_label = {model.label_dict[key]: value for key, value in class_weights.items()}
-        class_weights_numeric_label = {key: class_weights_numeric_label[key] for key in sorted(class_weights_numeric_label)}
-    
-        data_weights = []
-        #upsample rare classes more as a residual
-        for idx, batch in enumerate(ds):
-            path, image, targets = batch
-            labels = [model.numeric_to_label_dict[x] for x in targets["labels"].numpy()]
-            image_weight = np.median([class_weights[x] for x in labels]) # mean or median instead of sum?
-            data_weights.append(1 / image_weight)
-            
-        data_weights = data_weights / sum(data_weights)
-        sampler = torch.utils.data.sampler.WeightedRandomSampler(weights = torch.DoubleTensor(data_weights),
-                                                                 num_samples=len(ds))
-        dataloader = torch.utils.data.DataLoader(ds,
-                                            batch_size = model.config["batch_size"],
-                                            sampler = sampler,
-                                            collate_fn=utilities.collate_fn,
-                                            num_workers=model.config["workers"])
-    else:
-        dataloader = torch.utils.data.DataLoader(ds,
-                                            batch_size = model.config["batch_size"],
-                                            collate_fn=utilities.collate_fn,
-                                            num_workers=model.config["workers"])
-
-    # labs = []
-    # for batch in dataloader:
-    #     paths, x, y = batch
-    #     batch_labels = np.concatenate([i["labels"].numpy() for i in y])
-    #     labs.append(batch_labels)
-    # labs = np.concatenate(labs)
-    # pd.Series(labs).value_counts().sort_index() / sum(pd.Series(labs).value_counts())
-
+    dataloader = torch.utils.data.DataLoader(ds,
+                                        batch_size = model.config["batch_size"],
+                                        collate_fn=utilities.collate_fn,
+                                        num_workers=model.config["workers"])
     trainer.fit(model, dataloader)
     trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
 
@@ -344,8 +300,5 @@ if __name__ == "__main__":
                 test_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_test.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
-                balance_classes=False,
-                balance_min = 1000,
-                balance_max = 10000,
-                one_vs_all_sp=None,
-                experiment_name="longer_term_no_balance")
+                empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
+                experiment_name="empty_frames")
