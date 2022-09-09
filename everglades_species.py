@@ -161,7 +161,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     #add in weak annotations
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
-    empty_frames = empty_frames.sample(n=5000)
+    #empty_frames = empty_frames.sample(n=5000)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     
     #Confirm no name overlaps
@@ -326,4 +326,4 @@ if __name__ == "__main__":
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
                 empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
-                experiment_name="empty_frames_1000")
+                experiment_name="empty_frames_all_images")
