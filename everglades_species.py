@@ -5,9 +5,11 @@ from deepforest.callbacks import images_callback
 from deepforest import main
 from deepforest import dataset
 from deepforest import utilities
+
 import pandas as pd
 import os
 import numpy as np
+import cv2
 from datetime import datetime
 import traceback
 import torch
@@ -135,6 +137,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
+    tmpdir = tempfile.gettempdir()
     
     try:
         os.mkdir(model_savedir)
@@ -300,7 +303,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         
         for x in empty_images:
             img = model.predict_image(path=x, return_plot=True)
-            comet_logger.experiment.log_image(img,"empty_frame_{}".format(x))
+            cv2.imwrite("{}/{}.png".format(tmpdir,x), img)
+            comet_logger.experiment.log_image("{}/{}.png".format(tmpdir,x), image_scale=0.5)
 
     return model
 
