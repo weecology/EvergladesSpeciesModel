@@ -303,8 +303,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         
         for x in empty_images:
             img = model.predict_image(path=x, return_plot=True)
-            cv2.imwrite("{}/{}.png".format(tmpdir,x), img)
-            comet_logger.experiment.log_image("{}/{}.png".format(tmpdir,x), image_scale=0.5)
+            if img is not None:
+                cv2.imwrite("{}/{}.png".format(tmpdir,os.path.basename(x)), img)
+                comet_logger.experiment.log_image("{}/{}.png".format(tmpdir,os.path.basename(x)), image_scale=0.5)
+            else:
+                comet_logger.experiment.log_image(x, image_scale=0.5)
 
     return model
 
