@@ -10,7 +10,7 @@
 #SBATCH --output=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
 #SBATCH --error=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.err
 #SBATCH --partition=gpu
-#SBATCH --gpus=a100:2
+#SBATCH --gpus=a100:3
 
 ulimit -c 0
 source activate DeepTreeAttention

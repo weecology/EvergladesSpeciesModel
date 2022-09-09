@@ -161,7 +161,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     #add in weak annotations
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
-    empty_frames = empty_frames.sample(n=1000)
+    empty_frames = empty_frames.sample(n=5000)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     
     #Confirm no name overlaps
