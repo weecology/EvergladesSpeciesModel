@@ -71,7 +71,7 @@ def upload_empty_images(model, comet_logger, empty_images):
     for x in empty_images:
         img = model.predict_image(path=x, return_plot=True)
         if img is not None:
-            cv2.imwrite("{}/{}.png".format(tmpdir,os.path.basename(x)), img)
-            comet_logger.experiment.log_image("{}/{}.png".format(tmpdir,os.path.basename(x)), image_scale=0.5)
+            cv2.imwrite("{}/false_positive_{}.png".format(tmpdir,os.path.basename(x)), img)
+            comet_logger.experiment.log_image("{}/false_positive_{}.png".format(tmpdir,os.path.basename(x)), image_scale=0.5)
         else:
-            comet_logger.experiment.log_image(x, image_scale=0.5)    
+            comet_logger.experiment.log_image(x, image_scale=0.5, name="true_negative_{}".format(x))    
