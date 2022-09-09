@@ -24,16 +24,14 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
         Args:
             invert: whether the recall should be relative to empty images (default) or non-empty images (1-value)"""
     #Create PR curve
-    #Set score threshold to 0 to view all boxes
-    model.model.score_thresh = 0
     precision_curve = [ ]
     for path in empty_images:
         boxes = model.predict_image(path = path, return_plot=False)
         if boxes is not None:     
             boxes["image"] = path
-            precision_curve.append(boxes)
-    if len(precision_curve) == 0:
-        return None
+        else:
+            boxes = pd.DataFrame({"image_path":[path], "xmin":[None],"ymin":[None],"xmax":[None],"ymax":[None],"label":[None],"image":[path]})
+        precision_curve.append(boxes)
     
     precision_curve = pd.concat(precision_curve)
     recall_plot = plot_recall_curve(precision_curve, invert=invert)
