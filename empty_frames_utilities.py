@@ -39,10 +39,10 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
     
     if invert:
         value = 1 - value
-        metric_name = "BirdRecall_at_0.4"
+        metric_name = "BirdRecall_at_0.3"
         recall_plot.set_title("Atleast One Bird Recall")
     else:
-        metric_name = "EmptyRecall_at_0.4"
+        metric_name = "EmptyRecall_at_0.3"
         recall_plot.set_title("Empty Recall")        
         
     comet_logger.experiment.log_metric(metric_name,value)
