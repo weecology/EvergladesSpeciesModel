@@ -104,7 +104,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     if not len(overlapping_images) == 0:
         raise IOError("Overlapping images: {}".format(overlapping_images))
     
-    train = pd.concat([train, empty_frames])
+    #train = pd.concat([train, empty_frames])
     
     #Store test train split for run to allow multiple simultaneous run starts
     train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
@@ -257,4 +257,4 @@ if __name__ == "__main__":
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
                 empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
-                experiment_name="empty_frames_all_images")
+                experiment_name="no_empty")
