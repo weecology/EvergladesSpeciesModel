@@ -30,7 +30,7 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
         if boxes is not None:     
             boxes["image"] = path
         else:
-            boxes = pd.DataFrame({"image_path":[path], "xmin":[None],"ymin":[None],"xmax":[None],"ymax":[None],"label":[None],"image":[path]})
+            boxes = pd.DataFrame({"image_path":[path], "xmin":[None],"ymin":[None],"xmax":[None],"ymax":[None],"label":[None],"image":[path], "score":[None]})
         precision_curve.append(boxes)
     
     precision_curve = pd.concat(precision_curve)
