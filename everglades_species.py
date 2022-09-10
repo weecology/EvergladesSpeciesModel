@@ -234,10 +234,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     
     #Test on empy frames
     if empty_images_path:
-        model.config["score_thresh"] = 0.4
+        model.config["score_thresh"] = 0.01        
         empty_frame_df = pd.read_csv(empty_images_path)
         empty_images = empty_frame_df.image_path.unique()    
         predict_empty_frames(model, empty_images, comet_logger)
+        model.config["score_thresh"] = 0.4        
         upload_empty_images(model, comet_logger, empty_images)
 
     return model
