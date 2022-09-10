@@ -35,7 +35,7 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
     
     precision_curve = pd.concat(precision_curve)
     recall_plot = plot_recall_curve(precision_curve, invert=invert)
-    value = empty_image(precision_curve, threshold=0.4)
+    value = empty_image(precision_curve, threshold=0.3)
     
     if invert:
         value = 1 - value
