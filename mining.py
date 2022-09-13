@@ -6,10 +6,11 @@ import geopandas as gpd
 from shapely import geometry
 import glob
 
-TRAINED_MODEL = "/blue/ewhite/everglades/Zooniverse//20220331_131640/species_model.pl"
+TRAINED_MODEL = "/blue/ewhite/everglades/Zooniverse//20220910_182553/species_model.pl"
 m = main.deepforest.load_from_checkpoint(TRAINED_MODEL)
 CROP_DIR = "/blue/ewhite/everglades/Zooniverse/mining/"
 files = glob.glob("/blue/ewhite/everglades/projected_mosaics/2022/*/*.tif")
+files = [x for x in files if "horus" in x]
 
 for f in files:
     basename = os.path.splitext(os.path.basename(f))[0]
@@ -18,7 +19,7 @@ for f in files:
         continue
     for index, result in enumerate(results):
         original_boxes, crop = result
-        boxes = original_boxes[original_boxes.score > 0.6]
+        boxes = original_boxes[original_boxes.score > 0.4]
         filtered_boxes = boxes[boxes.label.isin(["Great Blue Heron","Snowy Egret","Roseate Spoonbill","Wood Stork"])] 
         highest_scores = filtered_boxes.groupby("label").apply(lambda x: x.sort_values(by="score",ascending=False).head(50)).reset_index(drop=True)
         if not highest_scores.empty:         
