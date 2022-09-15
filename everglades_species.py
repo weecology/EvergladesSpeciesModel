@@ -90,7 +90,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     weak_train = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/split_annotations.csv")
     train = pd.concat([train, weak_train])
     train = train[train.label.isin(['Great Egret', 'Roseate Spoonbill', 'White Ibis',
-           'Great Blue Heron', 'Wood Stork', 'Snowy Egret'])]
+           'Great Blue Heron', 'Wood Stork', 'Snowy Egret',"Anhinga"])]
     test = test[test.label.isin(train.label)]
     
     #add in weak annotations
@@ -257,4 +257,4 @@ if __name__ == "__main__":
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
                 empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
-                experiment_name="no_anhinga")
+                experiment_name="main")
