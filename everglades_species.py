@@ -213,13 +213,13 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
 
             # Add a label for undetected birds and create confusion matrix
             model.label_dict.update({'Bird Not Detected': 6})
-            #comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
-                                                         #y_predicted=ypred,
-                                                         #labels = list(model.label_dict.keys()),
-                                                         #index_to_example_function=index_to_example,
-                                                         #results = results["results"],
-                                                         #test_path=test_path,
-                                                         #comet_experiment = comet_logger.experiment)
+            comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
+                                                         y_predicted=ypred,
+                                                         labels = list(model.label_dict.keys()),
+                                                         index_to_example_function=index_to_example,
+                                                         results = results["results"],
+                                                         test_path=test_path,
+                                                         comet_experiment = comet_logger.experiment)
         except Exception as e:
             print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
     
