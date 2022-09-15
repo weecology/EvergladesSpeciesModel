@@ -211,7 +211,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
             ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes + 1).numpy()
 
             # Add a label for undetected birds and create confusion matrix
-            model.label_dict.update({'Bird Not Detected': 6})
+            model.label_dict.update({'Bird Not Detected': 7})
             comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
                                                          y_predicted=ypred,
                                                          labels = list(model.label_dict.keys()),
