@@ -90,13 +90,12 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     weak_train = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/split_annotations.csv")
     train = pd.concat([train, weak_train])
     train = train[train.label.isin(['Great Egret', 'Roseate Spoonbill', 'White Ibis',
-           'Great Blue Heron', 'Wood Stork', 'Snowy Egret',
-           'Anhinga'])]
+           'Great Blue Heron', 'Wood Stork', 'Snowy Egret'])]
     test = test[test.label.isin(train.label)]
     
     #add in weak annotations
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
-    #empty_frames = empty_frames.sample(n=5000)
+    empty_frames = empty_frames.sample(n=1000)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     
     #Confirm no name overlaps
@@ -104,7 +103,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     if not len(overlapping_images) == 0:
         raise IOError("Overlapping images: {}".format(overlapping_images))
     
-    #train = pd.concat([train, empty_frames])
+    train = pd.concat([train, empty_frames])
     
     #Store test train split for run to allow multiple simultaneous run starts
     train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
@@ -258,4 +257,4 @@ if __name__ == "__main__":
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
                 empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
-                experiment_name="no_empty")
+                experiment_name="no_anhinga")
