@@ -10,7 +10,7 @@ TRAINED_MODEL = "/blue/ewhite/everglades/Zooniverse//20220910_182553/species_mod
 m = main.deepforest.load_from_checkpoint(TRAINED_MODEL)
 CROP_DIR = "/blue/ewhite/everglades/Zooniverse/mining/"
 files = glob.glob("/blue/ewhite/everglades/projected_mosaics/2022/*/*.tif")
-files = [x for x in files if "horus" in x]
+files = [x for x in files if "Horus" in x]
 
 for f in files:
     basename = os.path.splitext(os.path.basename(f))[0]
