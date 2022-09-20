@@ -74,4 +74,4 @@ def upload_empty_images(model, comet_logger, empty_images):
             cv2.imwrite("{}/false_positive_{}.png".format(tmpdir,os.path.basename(x)), img)
             comet_logger.experiment.log_image("{}/false_positive_{}.png".format(tmpdir,os.path.basename(x)), image_scale=0.5)
         else:
-            comet_logger.experiment.log_image(x, image_scale=0.5, name="true_negative_{}".format(x))    
+            continue 
