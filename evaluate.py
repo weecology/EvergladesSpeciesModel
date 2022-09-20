@@ -2,9 +2,6 @@
 import comet_ml
 from pytorch_lightning.loggers import CometLogger
 from deepforest import main
-from deepforest import dataset
-from deepforest import utilities
-import create_species_model
 from empty_frames_utilities import *
 
 import pandas as pd
@@ -17,7 +14,6 @@ import tempfile
 from matplotlib import pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path, PurePath
-from pytorch_lightning import Trainer
 from datetime import datetime
 
 def get_species_abbrev_lookup(species_lookup):
@@ -63,10 +59,19 @@ def index_to_example(index, results, test_path, comet_experiment):
     return {"sample": tmp_image_name, "assetId": results["imageId"]}
 
 def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
-                experiment_name="ev-species"):
-    """Train a DeepForest model"""
-    
-    comet_logger = CometLogger(project_name="everglades-species", workspace="bw4sz", experiment_name=experiment_name)
+                experiment_name=None, comet_logger=None):
+    """Evaluate a deepforest model
+    Args:
+        test_path: path to csv on disk, format image_path (relative to root dir), xmin, ymin, xmax, ymax, label
+        model_path: a deepforest saved model
+        empty_images_patH: path to csv on disk, same format as above, but with None, in xmin, ymin, xmax, ymax to denote empty frames
+        experiment_name: used to name a new comet_experiment, superceded by comet_logger
+        comet_logger: an existing comet logger to log metrics
+    Returns:
+        results: a pandas dataframe of deepforest results
+    """ 
+    if experiment_name is not None:
+        comet_logger = CometLogger(project_name="everglades-species", workspace="bw4sz", experiment_name=experiment_name)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
