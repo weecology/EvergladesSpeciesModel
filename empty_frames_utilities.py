@@ -35,17 +35,17 @@ def predict_empty_frames(model, empty_images, comet_logger, invert=False):
     
     precision_curve = pd.concat(precision_curve)
     recall_plot = plot_recall_curve(precision_curve, invert=invert)
-    value = empty_image(precision_curve, threshold=0.3)
+    recall_at_threshold = empty_image(precision_curve, threshold=0.3)
     
     if invert:
-        value = 1 - value
+        recall_at_threshold = 1 - recall_at_threshold
         metric_name = "BirdRecall_at_0.3"
         recall_plot.set_title("Atleast One Bird Recall")
     else:
         metric_name = "EmptyRecall_at_0.3"
         recall_plot.set_title("Empty Recall")        
         
-    comet_logger.experiment.log_metric(metric_name,value)
+    comet_logger.experiment.log_metric(metric_name,recall_at_threshold)
     comet_logger.experiment.log_figure(recall_plot)   
     
 def is_empty(precision_curve, threshold):

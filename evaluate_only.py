@@ -78,11 +78,12 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
         
     test = pd.read_csv(test_path)
 
-    # Given that some test labels are unknown, seperately get box and class scores
+    ## Given that some test labels are unknown, seperately get box and class scores
     
     # Box Scores
     label_dict = {key:value for value, key in enumerate(test.label.unique())}    
     model = main.deepforest.load_from_checkpoint(model_path)
+    original_label_dict = model.label_dict
     model.label_dict = label_dict
     model.numeric_to_label_dict = {value:key for key, value in label_dict.items()}
     box_score_results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
@@ -93,10 +94,9 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     
     test.to_csv("{}/cleaned_test_classes.csv".format(save_dir))
     
-    label_dict = {key:value for value, key in enumerate(test.label.unique())}
-    model.label_dict = label_dict
-    model.numeric_to_label_dict = {value:key for key, value in label_dict.items()}    
-    species_lookup = {value:key for key, value in label_dict.items()}
+    model.label_dict = original_label_dict
+    species_lookup = {value:key for key, value in original_label_dict.items()}
+    model.numeric_to_label_dict = species_lookup      
     species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)    
     
     results = model.evaluate("{}/cleaned_test_classes.csv".format(save_dir), root_dir = os.path.dirname(test_path))
@@ -159,10 +159,13 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     
     #Test on empy frames
     if empty_images_path:
+        #Set threshold very low to allow the creation of a precision recall curve
         model.config["score_thresh"] = 0.01        
         empty_frame_df = pd.read_csv(empty_images_path)
         empty_images = empty_frame_df.image_path.unique()    
         predict_empty_frames(model, empty_images, comet_logger)
+        
+        #Reset desired precision for uploading images
         model.config["score_thresh"] = 0.3        
         upload_empty_images(model, comet_logger, empty_images)
 
