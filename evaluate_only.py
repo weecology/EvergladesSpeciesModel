@@ -75,18 +75,25 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     # Given that some test labels are unknown, seperately get box and class scores
     
     # Box Scores
+    label_dict = {key:value for value, key in enumerate(test.label.unique())}    
     model = main.deepforest.load_from_checkpoint(model_path)
+    model.label_dict = label_dict
+    model.numeric_to_label_dict = {value:key for key, value in label_dict.items()}
     box_score_results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
     # Class Scores
     test = test[test.label.isin(['Great Egret', 'Roseate Spoonbill', 'White Ibis',
            'Great Blue Heron', 'Wood Stork', 'Snowy Egret'])]
     
+    test.to_csv("{}/cleaned_test_classes.csv".format(save_dir))
+    
     label_dict = {key:value for value, key in enumerate(test.label.unique())}
+    model.label_dict = label_dict
+    model.numeric_to_label_dict = {value:key for key, value in label_dict.items()}    
     species_lookup = {value:key for key, value in label_dict.items()}
     species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)    
     
-    results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
+    results = model.evaluate("{}/cleaned_test_classes.csv".format(save_dir), root_dir = os.path.dirname(test_path))
     
     if comet_logger is not None:
         try:
