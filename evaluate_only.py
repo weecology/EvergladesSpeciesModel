@@ -70,6 +70,12 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
+    
+    try:
+        os.mkdir(model_savedir)
+    except Exception as e:
+        print(e)
+        
     test = pd.read_csv(test_path)
 
     # Given that some test labels are unknown, seperately get box and class scores
