@@ -93,7 +93,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
            'Great Blue Heron', 'Wood Stork', 'Snowy Egret',"Anhinga"])]
     test = test[test.label.isin(train.label)]
     
-    #add in weak annotations
+    # Add in weak annotations for empty frames
     empty_frames = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/inferred_empty_annotations.csv")
     empty_frames = empty_frames.sample(n=1000)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
@@ -147,8 +147,10 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         comet_logger.experiment.log_parameter("Training_Annotations",train.shape[0])    
         comet_logger.experiment.log_parameter("Testing_Annotations",test.shape[0])
         comet_logger.experiment.log_parameter("model_savedir",model_savedir)
-        
+    
+    # Image callback significantly slows down training time, but can be helpful for debugging.
     #im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)        
+    
     trainer = Trainer(
         accelerator="gpu",
         strategy="ddp",
@@ -228,6 +230,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     test_frame_df["image_path"] = test_frame_df["image_path"].apply(lambda x: os.path.join(dirname,x))
     empty_images = test_frame_df.image_path.unique()  
     
+    # Set a low score threshold just to create the precision-recall curve for visualization
     model.config["score_thresh"] = 0.01
     predict_empty_frames(model, empty_images, comet_logger, invert=True)
     
