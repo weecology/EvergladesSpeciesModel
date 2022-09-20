@@ -82,11 +82,11 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     comet_logger.experiment.log_parameter("timestamp",timestamp)
     comet_logger.experiment.add_tag("species")
     
-    #Log the number of training and test
+    # Log the number of training and test
     train = pd.read_csv(train_path)
     test = pd.read_csv(test_path)
     
-    #Add weak annotations from photoshop to train
+    # Add weak annotations from photoshop to train
     weak_train = pd.read_csv("/blue/ewhite/everglades/photoshop_annotations/split_annotations.csv")
     train = pd.concat([train, weak_train])
     train = train[train.label.isin(['Great Egret', 'Roseate Spoonbill', 'White Ibis',
@@ -98,14 +98,14 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     empty_frames = empty_frames.sample(n=1000)
     empty_frames.image_path = empty_frames.image_path.apply(lambda x: os.path.basename(x))
     
-    #Confirm no name overlaps
+    # Confirm no name overlaps
     overlapping_images = train[train.image_path.isin(empty_frames.image_path.unique())]
     if not len(overlapping_images) == 0:
         raise IOError("Overlapping images: {}".format(overlapping_images))
     
     train = pd.concat([train, empty_frames])
     
-    #Store test train split for run to allow multiple simultaneous run starts
+    # Store test train split for run to allow multiple simultaneous run starts
     train_path = str(PurePath(Path(train_path).parents[0], Path(f'species_train_{timestamp}.csv')))
     test_path = str(PurePath(Path(test_path).parents[0], Path(f'species_test_{timestamp}.csv')))
     train.to_csv(train_path)
@@ -114,7 +114,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     comet_logger.experiment.log_table("train.csv", train)
     comet_logger.experiment.log_table("test.csv", test)
 
-    #Set config and train'    
+    # Set config and train    
     label_dict = {key:value for value, key in enumerate(train.label.unique())}
     species_lookup = {value:key for key, value in label_dict.items()}
     species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)
@@ -132,7 +132,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     model.config["train"]["csv_file"] = train_path
     model.config["train"]["root_dir"] = os.path.dirname(train_path)
     
-    #Set config and train
+    # Set config and train
     model.config["validation"]["csv_file"] = test_path
     model.config["validation"]["root_dir"] = os.path.dirname(test_path)
     
@@ -149,7 +149,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         comet_logger.experiment.log_parameter("model_savedir",model_savedir)
     
     # Image callback significantly slows down training time, but can be helpful for debugging.
-    #im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)        
+    # im_callback = images_callback(csv_file=model.config["validation"]["csv_file"], root_dir=model.config["validation"]["root_dir"], savedir=model_savedir, n=20)        
     
     trainer = Trainer(
         accelerator="gpu",
@@ -172,7 +172,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     trainer.fit(model, dataloader)
     trainer.save_checkpoint("{}/species_model.pl".format(model_savedir))
 
-    #Manually convert model
+    # Manually convert model
     results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
     if comet_logger is not None:
@@ -224,7 +224,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
         except Exception as e:
             print("logger exception: {} with traceback \n {}".format(e, traceback.print_exc()))
     
-    #Create a positive bird recall curve
+    # Create a positive bird recall curve
     test_frame_df = pd.read_csv(test_path)
     dirname = os.path.dirname(test_path)
     test_frame_df["image_path"] = test_frame_df["image_path"].apply(lambda x: os.path.join(dirname,x))
@@ -234,7 +234,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
     model.config["score_thresh"] = 0.01
     predict_empty_frames(model, empty_images, comet_logger, invert=True)
     
-    #Test on empy frames
+    # Test on empy frames
     if empty_images_path:
         model.config["score_thresh"] = 0.01        
         empty_frame_df = pd.read_csv(empty_images_path)

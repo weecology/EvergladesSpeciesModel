@@ -75,7 +75,7 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     # Given that some test labels are unknown, seperately get box and class scores
     
     # Box Scores
-    model = main.deepforest.load_from_checkpoint()
+    model = main.deepforest.load_from_checkpoint(model_path)
     box_score_results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
     # Class Scores
