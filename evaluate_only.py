@@ -71,16 +71,22 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
     test = pd.read_csv(test_path)
+
+    # Given that some test labels are unknown, seperately get box and class scores
     
-    #Set config and train'    
+    # Box Scores
+    model = main.deepforest.load_from_checkpoint()
+    box_score_results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
+    
+    # Class Scores
+    test = test[test.label.isin(['Great Egret', 'Roseate Spoonbill', 'White Ibis',
+           'Great Blue Heron', 'Wood Stork', 'Snowy Egret'])]
+    
     label_dict = {key:value for value, key in enumerate(test.label.unique())}
     species_lookup = {value:key for key, value in label_dict.items()}
-    species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)
-
-    #Manually convert model
-    model = main.deepforest.load_from_checkpoint()
-    results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
+    species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)    
     
+    results = model.evaluate(test_path, root_dir = os.path.dirname(test_path))
     
     if comet_logger is not None:
         try:
@@ -98,11 +104,9 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
                 comet_logger.experiment.log_metric("{}_Precision".format(species_abbrev_lookup[row["label"]]),row["precision"])
             
             comet_logger.experiment.log_metric("Average Class Recall",results["class_recall"].recall.mean())
-            comet_logger.experiment.log_metric("Box Recall",results["box_recall"])
-            comet_logger.experiment.log_metric("Box Precision",results["box_precision"])
-            
-            comet_logger.experiment.log_parameter("saved_checkpoint","{}/species_model.pl".format(model_savedir))
-            
+            comet_logger.experiment.log_metric("Box Recall",box_score_results["box_recall"])
+            comet_logger.experiment.log_metric("Box Precision",box_score_results["box_precision"])
+                        
             # Make predicted labels while dealing with test data that does not get a bounding box.
             # These predicted labels return as nan, so check for them using y == y (returns False for nan)
             # and then replace them with one more than the available class indexes for confusion matrix
@@ -120,7 +124,7 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
             ytrue = torch.nn.functional.one_hot(ytrue.to(torch.int64), num_classes = model.num_classes + 1).numpy()
 
             # Add a label for undetected birds and create confusion matrix
-            model.label_dict.update({'Bird Not Detected': 7})
+            model.label_dict.update({'Bird Not Detected': 6})
             comet_logger.experiment.log_confusion_matrix(y_true=ytrue,
                                                          y_predicted=ypred,
                                                          labels = list(model.label_dict.keys()),

@@ -7,8 +7,8 @@
 #SBATCH --cpus-per-task=30
 #SBATCH --mem=140GB
 #SBATCH --time=48:00:00       #Time limit hrs:min:sec
-#SBATCH --output=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
-#SBATCH --error=/home/b.weinstein/logs/EvergladesSpeciesModel_%j.err
+#SBATCH --output=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
+#SBATCH --error=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.err
 #SBATCH --partition=gpu
 #SBATCH --gpus=a100:3
 
