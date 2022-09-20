@@ -13,5 +13,5 @@
 #SBATCH --gpus=a100:3
 
 ulimit -c 0
-source activate DeepTreeAttention
+source activate ESM
 python everglades_species.py
