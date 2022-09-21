@@ -2,13 +2,13 @@
 
 #cpu workers for data loaders
 #Dataloaders
-workers: 8
-gpus: 1
-distributed_backend:
+workers: 30
+gpus: 3
+distributed_backend: gpu
 batch_size: 8
 
 #Non-max supression of overlapping predictions
-nms_thresh: 0.05
+nms_thresh: 0.1
 score_thresh: 0.3
 
 train:
@@ -20,12 +20,12 @@ train:
     lr: 0.001
 
     #Print loss every n epochs
-    epochs: 62
+    epochs: 40
     #Useful debugging flag in pytorch lightning, set to True to get a single batch of training to test settings.
     fast_dev_run: False
 
     #pin images to GPU memory for fast training. This depends on GPU size and number of images.
-    preload_images: True
+    preload_images: False
     
 validation:
     #callback args
@@ -33,4 +33,4 @@ validation:
     root_dir:
     #Intersection over union evaluation
     iou_threshold: 0.4
-    val_accuracy_interval: 1
+    val_accuracy_interval: 5
