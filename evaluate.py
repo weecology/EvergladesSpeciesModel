@@ -105,16 +105,13 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
     species_abbrev_lookup = get_species_abbrev_lookup(species_lookup)    
     
     results = model.evaluate("{}/cleaned_test_classes.csv".format(save_dir), root_dir = os.path.dirname(test_path))
-    
+    results["results"].to_csv("{}/iou_dataframe.csv".format(model_savedir))
+    results["predictions"].to_csv("{}/predictions_dataframe.csv".format(model_savedir))
+    results["class_recall"].to_csv("{}/class_recall.csv".format(model_savedir))
     if comet_logger is not None:
         try:
-            results["results"].to_csv("{}/iou_dataframe.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/iou_dataframe.csv".format(model_savedir))
-
-            results["predictions"].to_csv("{}/predictions_dataframe.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/predictions_dataframe.csv".format(model_savedir))
-            
-            results["class_recall"].to_csv("{}/class_recall.csv".format(model_savedir))
             comet_logger.experiment.log_asset("{}/class_recall.csv".format(model_savedir))
             
             for index, row in results["class_recall"].iterrows():
