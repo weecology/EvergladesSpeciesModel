@@ -175,7 +175,8 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
 
     evaluate_model(test_path=test_path,
                    model_path="{}/species_model.pl".format(model_savedir),
-                   save_dir=save_dir)
+                   save_dir=save_dir,
+                   comet_logger=comet_logger)
 
     return model
     
