@@ -168,11 +168,3 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
         upload_empty_images(model, comet_logger, empty_images)
 
     return model
-
-if __name__ == "__main__":
-    evaluate_model(
-                test_path="/blue/ewhite/everglades/Zooniverse/cleaned_test/test.csv",
-                save_dir="/blue/ewhite/everglades/Zooniverse/",
-                model_path="/blue/ewhite/everglades/Zooniverse//20220910_182547/species_model.pl",
-                empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
-                experiment_name="main")
