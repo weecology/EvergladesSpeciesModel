@@ -69,7 +69,7 @@ def train_model(train_path, test_path, empty_images_path=None, save_dir=".",
                 debug = False):
     """Train a DeepForest model"""
     
-    comet_logger = CometLogger(project_name="everglades-species", workspace="bw4sz", experiment_name=experiment_name)
+    comet_logger = CometLogger(project_name="everglades-species", workspace="weecology", experiment_name=experiment_name)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
