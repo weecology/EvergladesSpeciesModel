@@ -58,7 +58,7 @@ def index_to_example(index, results, test_path, comet_experiment):
     return {"sample": tmp_image_name, "assetId": results["imageId"]}
 
 def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
-                experiment_name=None, comet_logger=None):
+                experiment_name=None, comet_logger=None, timestamp=None):
     """Evaluate a deepforest model
     Args:
         test_path: path to csv on disk, format image_path (relative to root dir), xmin, ymin, xmax, ymax, label
@@ -68,8 +68,9 @@ def evaluate_model(test_path, model_path, empty_images_path=None, save_dir=".",
         comet_logger: an existing comet logger to log metrics
     Returns:
         results: a pandas dataframe of deepforest results
-    """ 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    """
+    if not timestamp:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_savedir = "{}/{}".format(save_dir,timestamp)  
     
     try:
