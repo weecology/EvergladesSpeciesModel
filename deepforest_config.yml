@@ -8,7 +8,7 @@ distributed_backend: gpu
 batch_size: 8
 
 #Non-max supression of overlapping predictions
-nms_thresh: 0.1
+nms_thresh: 0.5
 score_thresh: 0.3
 
 train:
