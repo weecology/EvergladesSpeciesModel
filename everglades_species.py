@@ -192,8 +192,8 @@ if __name__ == "__main__":
                                     save_dir="/blue/ewhite/everglades/Zooniverse/predictions/",
                                     max_empty_frames=max_empty_frames,
                                     buffer=25)
-    train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train.csv",
-                test_path="/blue/ewhite/everglades/Zooniverse/cleaned_test/test.csv",
+    train_model(train_path="/blue/ewhite/everglades/Zooniverse/parsed_images/species_train_resized.csv",
+                test_path="/blue/ewhite/everglades/Zooniverse/cleaned_test/test_resized.csv",
                 save_dir="/blue/ewhite/everglades/Zooniverse/",
                 gbd_pretrain=True,
                 empty_images_path="/blue/ewhite/everglades/Zooniverse/parsed_images/empty_frames.csv",
