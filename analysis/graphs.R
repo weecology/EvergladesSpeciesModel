@@ -314,33 +314,3 @@ ggplot(conf_mat_df, aes(x = Prediction, y = Target, fill = Percent)) +
 
 ggsave(glue("analysis/results/{model}/confusion_matrix.png"),
   height = 8, width = 8)
-
-### Uncertainty
-
-whib_data <- filter(matched_data,
-                    true_label == "Wood Stork",
-                    predicted_label != "Bird Not Detected")
-whib_breaks <- quantile(whib_data$score, probs = seq(0, 1, 0.2), na.rm = TRUE)
-uncertainty_by_score_macro = matched_data %>%
-  group_by(true_label) %>%
-  filter(predicted_label != "Bird Not Detected") %>%
-  mutate(score_category=cut2(score, g = 5, levels.mean = TRUE)) %>%
-  group_by(true_label, score_category) %>%
-  dplyr::summarize(accuracy = sum(predicted_label == true_label) / n()) %>%
-  mutate(score_category_num = as.numeric(as.character(score_category)))
-
-ggplot(uncertainty_by_score_macro, aes(x = score_category_num, y = accuracy)) +
-  geom_point(size = 3, pch=21, color = "black", fill = "grey") +
-  geom_abline(slope = 1, intercept = 0) +
-  ylim(0, 1) +
-  xlim(0.3, 1) +
-  facet_wrap(~ true_label) +
-  theme_bw() +
-  theme_bw(base_size = 16) +
-  theme(panel.grid.major.y = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        panel.grid.minor.x = element_blank())
-
-ggsave(glue("analysis/results/{model}/species_uncertainty.png",
-  height = 5, width = 8))
