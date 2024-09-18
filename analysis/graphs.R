@@ -12,7 +12,6 @@ library(stringr)
 library(viridis)
 library(glue)
 library(tidyr)
-library(Hmisc)
 
 # Select model for analysis
 
@@ -25,7 +24,6 @@ dir.create(file.path("analysis/results/", model), showWarnings = FALSE)
 
 matched_data <- read.csv(glue("analysis/data/{model}/iou_dataframe.csv")) |>
   mutate(
-    matched_data,
     predicted_label = case_match(
       predicted_label,
       "" ~ "Bird Not Detected",
@@ -71,43 +69,79 @@ bird_counts_plot <- ggplot(data = bird_counts,
 
 ggsave(glue("analysis/results/{model}/bird_counts.png"), height = 5, width = 5)
 
+## Precision & recall for bird detection
+
+
+
 ## Precision & Recall for Species model
 
-species_list = unique(matched_data$true_label)
-results = data.frame(species = character(length(species_list)),
-                     precision = numeric(length(species_list)),
-                     recall = numeric(length(species_list)))
+# Boxes with overlap < 0.4 are considered not to match and therefore
+# are excluded from species classification evaluation by convention.
+# The failure to detect these birds is incorporated in the detection
+# level precision and recall metrics.
+
+matched_no_missed <- matched_data |>
+  mutate(predicted_label = case_when(IoU < 0.4 ~ "Bird Not Detected",
+                             .default = predicted_label)) |>
+  filter(predicted_label != "Bird Not Detected")
+
+species_list <- unique(matched_no_missed$true_label)
+class_results <- data.frame(species = character(length(species_list)),
+                  f1 = numeric(length(species_list)),
+                  precision = numeric(length(species_list)),
+                  recall = numeric(length(species_list))
+                  )
 for (i in seq_along(species_list)){
   species <- species_list[i]
-  tp <- nrow(filter(matched_data, matched_data$true_label == species,
-                   matched_data$predicted_label == species))
-  fp <- nrow(filter(matched_data, matched_data$true_label != species,
-                   matched_data$predicted_label == species))
-  tn <- nrow(filter(matched_data, matched_data$true_label != species,
-                   matched_data$predicted_label != species))
-  fn <- nrow(filter(matched_data, matched_data$true_label == species,
-                   matched_data$predicted_label != species))
+  tp <- nrow(filter(matched_no_missed, true_label == species,
+                   predicted_label == species))
+  fp <- nrow(filter(matched_no_missed, true_label != species,
+                   predicted_label == species))
+  tn <- nrow(filter(matched_no_missed, true_label != species,
+                   predicted_label != species))
+  fn <- nrow(filter(matched_no_missed, true_label == species,
+                   predicted_label != species))
   precision <- tp / (tp + fp)
   recall <- tp / (tp + fn)
-  results$species[i] <- species
-  results$precision[i] <- precision
-  results$recall[i] <- recall
+  f1 <- 2 * (precision * recall) / (precision + recall)
+  class_results$species[i] <- species
+  class_results$precision[i] <- precision
+  class_results$recall[i] <- recall
+  class_results$f1[i] <- f1
 }
 
-print(results)
+print(class_results)
 
 ## Bird count comparison by species
+
+# Using sp_observations & sp_predictions causes issues because
+# of the presence of "Unknown White" labels in sp_observations
+# but shows decent counts for WHIBs. We can't just drop
+# "Unknown White" birds from these tables because they aren't
+# matched with the birds in sp_predictions
+
+# Using matched_data (iou_dataframe.csv) properly excludes "Unknown White"
+# birds, but it exhibits poorer performance for WHIBs when manually
+# implementing the IoU threshold cut off.
+
+# Together this suggests that sp_predictions may not be
+# respecting the IoU threshold and including anything with
+# >0 overlap, like matched_data was doing.
 
 sp_observation_counts <- matched_data |>
   group_by(image_path, true_label) |>
   summarize(count = n()) |>
-  rename(label = true_label)
+  rename(label = true_label) |>
+  ungroup() |>
+  complete(image_path, label, fill = list(count = 0))
 
 bird_detector_sp_counts <- matched_data |>
   filter(predicted_label != "Bird Not Detected") |>
   group_by(image_path, predicted_label) |>
   summarize(count = n()) |>
-  rename(label = predicted_label)
+  rename(label = predicted_label) |>
+  ungroup() |>
+  complete(image_path, label, fill = list(count = 0))
 
 bird_counts <- full_join(sp_observation_counts,
                          bird_detector_sp_counts,
@@ -115,15 +149,31 @@ bird_counts <- full_join(sp_observation_counts,
                  rename(observations = count.x, predictions = count.y) |>
                  replace_na(list(observations = 0, predictions = 0))
 
-f <- sqrt(bird_counts$predictions)
-y <- sqrt(bird_counts$observations)
+# Include square root transform for overall relationship to balance contribution of
+# high and low counts
+f <- bird_counts$predictions
+f_sqrt <- sqrt(f)
+y <- bird_counts$observations
+y_sqrt <- sqrt(y)
 
 r2_1to1 <- 1 - sum((y - f)^2) / sum((y - mean(y))^2)
+r2_1to1_sqrt <- 1 - sum((y_sqrt - f_sqrt)^2) / sum((y_sqrt - mean(y_sqrt))^2)
+print("R^2 total:")
+print(r2_1to1)
+print("\n")
+print("R^2 total sqrt transformed:")
+print(r2_1to1_sqrt)
 
+# Within species counts are more consistent to calculate R^2 on
+# untransformed data
 r2_1to1_sp <- bird_counts |>
   group_by(label) |>
-  summarize(R2 = 1 - sum((sqrt(observations) - sqrt(predictions))^2) /
-    sum((sqrt(observations) - mean(sqrt(observations)))^2))
+  summarize(R2 = 1 - sum((observations - predictions)^2) /
+    sum((observations - mean(observations))^2),
+    RMSE = sqrt(mean((observations - predictions)^2)))
+
+print("R^2 species:")
+print(r2_1to1_sp)
 
 bird_counts_no_labels <- bird_counts |>
   filter(label != "Empty") |>
@@ -210,6 +260,7 @@ ggsave(glue("analysis/results/{model}/sp_counts_zoom.png"),
 # Test tiles are typically much smaller than colonies, so aggregate to get a
 # better feel for performance at largers scales
 
+set.seed(26)
 image_path <- unique(bird_counts$image_path)
 num_images <- length(image_path)
 num_tiles <- 5
@@ -268,49 +319,85 @@ ggdraw(sp_counts_grouped) +
 ggsave(glue("analysis/results/{model}/sp_counts_5_tiles.png"),
   height = 5, width = 8)
 
-### Confusion matrix
+## Confusion matrices
 
-sp_counts_ordered = matched_data |>
+make_confusion_matrix <- function(conf_mat, label_order_target, label_order_prediction) {
+  conf_mat_df <- conf_mat$Table[[1]]
+  conf_mat_df <- conf_mat_df |>
+    as.data.frame(stringsAsFactors = TRUE) |>
+    group_by(Target) |>
+    mutate(Count = Freq,
+          Percent = Freq / sum(Freq) * 100,
+          Proportion = Freq / sum(Freq),
+          Target = factor(Target, rev(label_order_target)),
+          Prediction = factor(Prediction, label_order_prediction)) |>
+    ungroup() |>
+    filter(Target != "Bird Not Detected") |>
+    select(-Freq)
+
+  ggplot(conf_mat_df, aes(x = Prediction, y = Target, fill = Percent)) +
+    geom_tile() +
+    coord_equal() +
+    geom_text(aes(label = paste(scales::percent(Proportion, accuracy = 0.1),
+                            "\n", "(", Count, ")"))) +
+    scale_fill_gradient(low = "white", high = "#3575b5") +
+    scale_x_discrete(labels = str_replace_all(label_order_prediction,
+                                " ", "\n")) +
+    scale_y_discrete(labels = str_replace_all(rev(label_order_target),
+                                " ", "\n")) +
+    labs(x = "Predicted", y = "Observed") +
+    theme_bw(base_size = 14) +
+    theme(plot.title = element_text(size = 25, hjust = 0.5,
+                                    margin = margin(20, 0, 20, 0)),
+          legend.title = element_text(size = 14, margin = margin(0, 20, 10, 0)),
+          axis.title.x = element_text(margin = margin(20, 20, 20, 20), size = 18),
+          axis.title.y = element_text(margin = margin(0, 20, 0, 10), size = 18),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          legend.position = "none")
+}
+
+# Boxes with IoU's below 0.4 are considered to be missed
+matched_iou_threshed <- matched_data |>
+  mutate(predicted_label = case_when(IoU < 0.4 ~ "Bird Not Detected",
+                             .default = predicted_label))
+
+# Order the labels by commonness in test
+sp_counts_ordered <- matched_iou_threshed |>
   group_by(true_label) |>
   summarize(count = n()) |>
   arrange(desc(count))
-label_order_target = sp_counts_ordered$true_label
-label_order_prediction = c(label_order_target, "Bird Not Detected")
-conf_mat <- confusion_matrix(targets=matched_data$true_label,
-                            predictions=matched_data$predicted_label)
-conf_mat_df <- conf_mat$Table[[1]]
-conf_mat_df <- conf_mat_df |>
-  as.data.frame(stringsAsFactors = TRUE) |>
-  group_by(Target) |>
-  mutate(Count = Freq,
-         Percent = Freq / sum(Freq) * 100,
-         Proportion = Freq / sum(Freq),
-         Target = factor(Target, rev(label_order_target)),
-         Prediction = factor(Prediction, label_order_prediction)) |>
-  ungroup() |>
-  filter(Target != "Bird Not Detected") |>
-  select(-Freq)
+label_order_target <- sp_counts_ordered$true_label
+label_order_prediction <- c(label_order_target, "Bird Not Detected")
 
-ggplot(conf_mat_df, aes(x = Prediction, y = Target, fill = Percent)) +
-  geom_tile() +
-  coord_equal() +
-  geom_text(aes(label = paste(scales::percent(Proportion, accuracy = 0.1),
-                          "\n", "(", Count, ")"))) +
-  scale_fill_gradient(low = "white", high = "#3575b5") +
-  scale_x_discrete(labels = str_replace_all(label_order_prediction,
-                              " ", "\n")) +
-  scale_y_discrete(labels = str_replace_all(rev(label_order_target),
-                              " ", "\n")) +
-  labs(x = "Predicted", y = "Observed") +
-  theme_bw(base_size = 14) +
-  theme(plot.title = element_text(size = 25, hjust = 0.5,
-                                  margin = margin(20, 0, 20, 0)),
-        legend.title = element_text(size = 14, margin = margin(0, 20, 10, 0)),
-        axis.title.x = element_text(margin = margin(20, 20, 20, 20), size = 18),
-        axis.title.y = element_text(margin = margin(0, 20, 0, 10), size = 18),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        legend.position = "none")
+# Standard confusion matrix
+# Version of confusion matrix that focuses only species classification task
 
-ggsave(glue("analysis/results/{model}/confusion_matrix.png"),
+conf_mat_standard <- confusion_matrix(
+  targets = matched_no_missed$true_label,
+  predictions = matched_no_missed$predicted_label
+)
+
+make_confusion_matrix(
+  conf_mat_standard,
+  label_order_target,
+  label_order_prediction
+)
+
+ggsave(glue("analysis/results/{model}/confusion_matrix_standard.png"),
+  height = 8, width = 8)
+
+# Prediction confusion matrix
+# Version of confusion matrix that includes cases where birds are not detected
+conf_mat_prediction <- confusion_matrix(
+  targets = matched_iou_threshed$true_label,
+  predictions = matched_iou_threshed$predicted_label)
+
+make_confusion_matrix(
+  conf_mat_prediction,
+  label_order_target,
+  label_order_prediction
+)
+
+ggsave(glue("analysis/results/{model}/confusion_matrix_prediction.png"),
   height = 8, width = 8)
