@@ -10,8 +10,7 @@ sbatch <<EOT
 #SBATCH --time=48:00:00       #Time limit hrs:min:sec
 #SBATCH --output=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.out   # Standard output and error log
 #SBATCH --error=/blue/ewhite/everglades/EvergladesSpeciesModel/logs/EvergladesSpeciesModel_%j.err
-#SBATCH --partition=gpu
-#SBATCH --gpus=a100:1
+#SBATCH --gpus=1
 
 ulimit -c 0
 source activate ESM
